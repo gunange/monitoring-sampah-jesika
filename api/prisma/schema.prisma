@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id         Int      @id @default(autoincrement())
+  label      String   @db.VarChar(150)
+  role       String   @db.VarChar(150)
+  created_at DateTime @default(now())
+  User       User[]
+
+  @@map("__roles")
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  role_id        Int
+  username       String   @unique
+  password       String
+  remember_token String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  Role               Role                 @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: Cascade)
+  PersonalAksesToken PersonalAksesToken[]
+  Barista            Barista[]
+
+  @@index([role_id], map: "__users_role_id_fkey")
+  @@map("__users")
+}
+
+model PersonalAksesToken {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  name         String
+  ip_address   String    @db.VarChar(50)
+  user_agent   String?   @db.LongText
+  token        String    @db.VarChar(100)
+  last_used_at DateTime  @default(now())
+  expires_at   DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "__personal_access_tokens_user_id_fkey")
+  @@map("__personal_access_tokens")
+}
+
+model Storage {
+  id         Int      @id @default(autoincrement())
+  uid        String   @unique
+  name       String
+  path       String
+  mime_type  String
+  size       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("__storage")
+}
+
+model Barista {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  noHp       String   @unique
+  nama       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  Order      Order[]
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("__barista")
+}
+
+model Kategori {
+  id    Int    @id @default(autoincrement())
+  label String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Items MenuItem[]
+
+  @@map("__kategori")
+}
+
+model MenuItem {
+  id         Int      @id @default(autoincrement())
+  kategoryId Int
+  nama       String
+  deskripsi  String?
+  storageUid String?
+  harga      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  Kategori  Kategori    @relation(fields: [kategoryId], references: [id], onDelete: NoAction)
+  OrderItem OrderItem[]
+
+  @@map("__menu_items")
+}
+
+model Meja {
+  id     Int        @id @default(autoincrement())
+  nomor  Int        @unique
+  status MejaStatus @default(TERSEDIA)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("__meja")
+}
+
+enum MejaStatus {
+  TERSEDIA
+  TERISI
+  DIPESAN
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  mejaId    Int
+  baristaId Int?
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  Pembayaran Pembayaran?
+  Items      OrderItem[]
+  Meja       Meja        @relation(fields: [mejaId], references: [id], onDelete: NoAction)
+  Barista    Barista?    @relation(fields: [baristaId], references: [id], onDelete: NoAction)
+
+  @@map("__order")
+}
+
+enum OrderStatus {
+  PENDING // belum disiapkan
+  PREPARING // sedang disiapkan
+  SERVED // sudah diantar
+  PAID // sudah dibayar
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  menuItemId Int
+  quantity   Int      @default(1)
+  harga      Int    @default(0)
+
+  createdAt  DateTime @default(now())
+
+  Order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  MenuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: NoAction)
+
+  @@map("__order_item")
+}
+
+model Pembayaran {
+  id      Int           @id @default(autoincrement())
+  orderId Int           @unique
+  jumlah  Int
+  method  PaymentMethod
+  paidAt  DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("__pembayaran")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  QRIS
+}
