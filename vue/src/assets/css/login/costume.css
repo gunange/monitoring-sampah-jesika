@@ -1,0 +1,21 @@
+@layer primevue {
+  @media (prefers-color-scheme: dark) {
+    .bg-login {
+      background-image: url('/assets/images/background/login-dark.svg') !important;
+    }
+  }
+}
+
+.bg-login {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/assets/images/background/login.svg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: left;
+}

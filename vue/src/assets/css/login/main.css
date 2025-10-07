@@ -1,0 +1,86 @@
+.login {
+  font-family: var(--font-family);
+  height: 100vh;
+  position: relative;
+}
+
+.login .wrapper {
+  box-shadow: 10px 10px 20px rgba(200, 208, 216, 0.3);
+}
+
+.login .wrapper .left {
+  z-index: 2;
+  padding-bottom: 0;
+  position: relative;
+  color: #ffffff;
+}
+.login .wrapper .left::before {
+  position: absolute;
+  content: '';
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(21deg, rgba(6, 64, 255, 0.8) 40%, rgba(99, 144, 248, 0.8) 100%);
+  opacity: 0.9;
+  z-index: -1;
+}
+
+.login .wrapper .left::after {
+  position: absolute;
+  content: '';
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background-image: url('/assets/pattern/small-patern.png');
+  opacity: 0.2;
+  z-index: -1;
+}
+
+.login .wrapper .left .logo {
+  width: 65%;
+  margin: auto;
+}
+
+.login .wrapper .left .shape-art {
+  position: absolute;
+  top: 32vh;
+  right: 19vh;
+  background-repeat: repeat;
+  background-image: url('/assets/pattern/small-patern.png');
+  z-index: -1;
+  opacity: 0.7;
+}
+.login .wrapper .left .shape-image {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.login .wrapper .left .shape-image img {
+  position: absolute;
+  height: 100%;
+  top: 0;
+}
+
+.login .wrapper .right {
+  height: 100%;
+  z-index: 1;
+  position: relative;
+}
+
+.login .wrapper .right .logo {
+  width: 130px;
+}
+
+.login .wrapper .right .form label {
+  font-weight: 400;
+  color: var(--blue-800);
+}
+
+.login .form .p-inputtext {
+  width: 100%;
+  margin-top: 10px;
+}

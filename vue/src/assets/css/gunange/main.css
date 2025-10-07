@@ -1,0 +1,52 @@
+@import './font/init.css';
+
+:root {
+  --font-size: 12px;
+  --font-family: 'g-ff-roboto';
+
+  --font-size-th: calc(1.5px + var(--font-size));
+}
+
+/* ------------------------- font family ------------------------- */
+
+.font-size {
+  font-size: var(--font-size);
+}
+
+.g-ff-noto-kr {
+  --font-family: 'g-ff-noto-kr';
+  font-family: 'g-ff-noto-kr';
+}
+
+.g-ff-nunito {
+  --font-family: 'g-ff-nunito';
+  font-family: 'g-ff-nunito';
+}
+
+.g-ff-open-sans {
+  --font-family: 'g-ff-open-sans';
+  font-family: 'g-ff-open-sans';
+}
+
+.g-ff-roboto {
+  --font-family: 'g-ff-roboto';
+  font-family: 'g-ff-roboto';
+}
+
+.g-ff-roboto-b {
+  --font-family: 'g-ff-roboto';
+  font-family: 'g-ff-roboto';
+  font-weight: 800;
+}
+.g-ff-sacramento {
+  --font-family: 'g-ff-sacramento';
+  font-family: 'g-ff-sacramento';
+}
+.g-ff-zeyada {
+  --font-family: 'g-ff-zeyada';
+  font-family: 'g-ff-zeyada';
+}
+.g-ff-poestsen-one {
+  --font-family: 'g-ff-poestsen-one';
+  font-family: 'g-ff-poestsen-one';
+}

@@ -1,0 +1,106 @@
+:root {
+  --text-primary: var(--color-primary);
+}
+
+.dashboard {
+  --border-width: 1px;
+  --border-width-table: 1px;
+  --border-color: var(--p-surface-200);
+  --shadow: var(--box-shadow);
+  --color: rgb(var(--surface-400));
+  --color-main: var(--color-primary);
+  /* table */
+  --text-color-tb: var(--color);
+  /* costume */
+  --text-primary: var(--color-main);
+  /* prime */
+  --p-input-text-font-size: 0.8rem;
+  --p-input-icon-font-size: 0.8rem;
+}
+
+/* brradcump */
+/* -------------------------------------------------------- */
+.dashboard .breadcump {
+  background-color: var(--background);
+}
+
+.dashboard .breadcump .p-breadcrumb-separator {
+  --p-icon-size: 9px;
+}
+
+/* card */
+/* -------------------------------------------------------- */
+.dashboard .card {
+  background-color: var(--background);
+  border-radius: 7px;
+  box-shadow: var(--shadow);
+}
+
+.dashboard .card .card-header h6 {
+  color: var(--color-main);
+}
+
+.dashboard .card .card-header {
+  border-bottom: var(--border-width) solid var(--border-color);
+  padding: 15px 20px;
+}
+
+.dashboard .card .card-body {
+  padding: 1rem;
+}
+
+/* InputGroup */
+/* -------------------------------------------------------- */
+.p-inputgroup .p-inputtext {
+  font-size: var(--p-input-icon-font-size);
+}
+
+.p-inputgroup .pi {
+  --p-icon-size: var(--p-input-icon-font-size);
+}
+
+.search-easy-table .p-inputtext {
+  --p-inputtext-background: transparent;
+}
+
+.search-easy-table .p-inputgroupaddon {
+  background-color: transparent;
+}
+
+/* Fieldset */
+/* -------------------------------------------------------- */
+.dashboard .fieldset-costume .p-fieldset {
+  --p-fieldset-background: transparent;
+}
+.dashboard .fieldset-costume .p-fieldset-legend {
+  --p-fieldset-legend-background: transparent;
+}
+
+/* TypoGraphy */
+/* -------------------------------------------------------- */
+.text-primary {
+  color: var(--text-primary);
+}
+
+/* ProgresBar */
+/* -------------------------------------------------------- */
+
+.dashboard .p-progressbar.progress-minim-20 {
+  --p-progressbar-value-background: rgb(255, 0, 89);
+  --p-progressbar-label-color: #edededff;
+}
+
+.dashboard .p-progressbar.progress-minim-40 {
+  --p-progressbar-value-background: rgb(255, 217, 0);
+  --p-progressbar-label-color: #121212ff;
+}
+
+.dashboard .p-progressbar.progress-minim-75 {
+  --p-progressbar-value-background: linear-gradient(to right, rgb(255, 217, 0), rgb(0, 255, 179));
+  --p-progressbar-label-color: #121212ff;
+}
+
+.dashboard .p-progressbar.progress-full {
+  --p-progressbar-value-background: rgb(0, 255, 4);
+  --p-progressbar-label-color: #3a212cff;
+}

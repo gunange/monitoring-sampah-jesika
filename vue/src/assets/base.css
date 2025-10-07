@@ -1,0 +1,47 @@
+:root {
+  --color-primary: #0487FBFF;
+  --color-secondary: #566a7f;
+  --color-yellow: #e7af21;
+
+  /* form */
+  --form-border-color: var(--p-primary-200);
+  --form-shadow-color: var(--p-primary-100);
+  --form-border-radius: 5px;
+  --form-border-width: 1px;
+  --form-placeholder-color: #c2caf5;
+  --form-line-height: 0.7;
+  --form-bg: #f1f5f9;
+  --form-border-color-active: var(--color-primary);
+  --form-focus-shadow: 0 0 8px 0.2rem var(--form-shadow-color);
+}
+
+:root {
+  /* --body-color: rgb(0, 117, 235); */
+  --body-color: #f1f5f9;
+  --background: #fffefe;
+  --background-50: #f2f0fb;
+  /*sidebar*/
+  --menu-active: 250px;
+
+  --icon-size-col-4: 10rem;
+  --icon-size-col-3: 7rem;
+  --icon-size-col-2: 5rem;
+
+  --body-font-size: var(--font-size);
+
+  --text-color: #0d111f;
+  --text-color-50: #323543;
+  --text-color-disable: #4e4d4d;
+  --text-color-th: #151020;
+  --text-color-tb: #150d26;
+  --text-color-tb-hover: var(--color-primary);
+  --text-color-tf: #9b9b9e;
+
+  --disable-color: #9b9b9e;
+
+  --box-shadow: 0 4px 12px -5px rgb(0 0 0 / 0.1), 0 2px 5px -6px rgb(0 0 0 / 0.1);
+}
+
+body {
+  background-color: #f1f1f1;
+}

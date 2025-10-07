@@ -1,11 +1,16 @@
-<script setup></script>
+<script setup lang="ts">
+import { RouterLink, RouterView } from 'vue-router'
+import toastWidget from '@/widgets/others/toast-widget.vue'
+import { useRouter } from 'vue-router'
+
+import { routerStore } from '@/stores/services/router-store'
+
+routerStore().setRouter(useRouter())
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div>
+    <RouterView />
+    <toastWidget />
+  </div>
 </template>
-
-<style scoped></style>

@@ -1,0 +1,43 @@
+/* 
+font
+-------------------------------------
+*/
+
+@font-face {
+  font-family: 'g-ff-noto-kr';
+  src: url('./fonts/NotoKR.otf');
+}
+
+@font-face {
+  font-family: 'g-ff-nunito';
+  src: url('./fonts/Nunito.ttf');
+}
+
+@font-face {
+  font-family: 'g-ff-open-sans';
+  src: url('./fonts/OpenSans.ttf');
+}
+
+@font-face {
+  font-family: 'g-ff-roboto';
+  src: url('./fonts/Roboto.ttf');
+}
+
+@font-face {
+  font-family: 'g-ff-sacramento';
+  src: url('./fonts/Sacramento.ttf');
+}
+
+@font-face {
+  font-family: 'g-ff-poetsen-one';
+  src: url('./fonts/PoetsenOne.ttf');
+}
+
+@font-face {
+  font-family: 'g-ff-zeyada';
+  src: url('./fonts/Zeyada.ttf');
+}
+@font-face {
+  font-family: 'g-ff-poestsen-one';
+  src: url('./fonts/PoetsenOne.ttf');
+}

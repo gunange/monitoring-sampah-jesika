@@ -1,0 +1,7 @@
+@layer primevue {
+  @media (prefers-color-scheme: dark) {
+    .home .footer .footer-top::before {
+      background-color: var(--p-zinc-900) !important;
+    }
+  }
+}

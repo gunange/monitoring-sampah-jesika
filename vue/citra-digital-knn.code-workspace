@@ -1,0 +1,41 @@
+{
+	"folders": [
+		{
+			"path": "api"
+		},
+		{
+			"path": "vue"
+		}
+	],
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+		{
+			"name": "Bun API",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "dev"],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"name": "Vue Dev",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run", "dev"],
+			"cwd": "${workspaceFolder}/../vue",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		}
+		],
+		"compounds": [
+		{
+			"name": "All Services",
+			"configurations": ["Bun API", "Vue Dev"]
+		}
+		]
+	}
+}

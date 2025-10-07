@@ -1,0 +1,434 @@
+/*-----------------NProgress-----------------*/
+/* Custom style untuk NProgress */
+
+#nprogress .bar {
+  /* nprogres */
+  background: rgb(59, 128, 246) !important;
+  height: 5px !important;
+  z-index: 8000 !important;
+}
+
+/*-----------------V Select-----------------*/
+:root {
+  --vs-dropdown-z-index: 2010;
+}
+
+.vs__dropdown-menu {
+  font-size: var(--vs-font-size);
+  background-color: var(--p-form-field-background);
+}
+
+.form .v-select {
+  background-color: var(--p-form-field-background);
+  background-clip: padding-box;
+  border: var(--form-border-width) solid var(--form-border-color);
+  border-radius: var(--form-border-radius);
+  padding: 6px 13px 6px 2px;
+  margin-top: 0.75rem;
+  --vs-search-input-color: var(--text-color);
+  --vs-selected-color: var(--text-color-disable);
+  --vs-search-input-placeholder-color: var(--form-placeholder-color);
+  --vs-dropdown-color: var(--text-color);
+  --vs-controls-color: var(--color-primary);
+  --vs-dropdown-option--active-color: #ffffff;
+  --vs-line-height: var(--form-line-height);
+  --vs-dropdown-bg: var(--p-form-field-background);
+  --vs-border-width: var(--form-border-width);
+  --vs-dropdown-z-index: 2010 !important;
+  --vs-dropdown-option-padding: 12px 17px;
+  --vs-transition-duration: 0.2s;
+  transition: 0.3s border box-shadow;
+}
+
+.form.rm .v-select {
+  margin: 0;
+}
+
+.form .v-select:hover {
+  border: var(--form-border-width) solid var(--form-border-color-active);
+}
+
+.form .v-select.vs--open {
+  border: var(--form-border-width) solid var(--form-border-color-active);
+  box-shadow: var(--form-focus-shadow);
+}
+
+.form .v-select ul {
+  border: var(--form-border-width) solid var(--surface-border);
+  border-radius: 0 0 var(--form-border-radius) var(--form-border-radius);
+  transition: 0.3s;
+}
+
+.form .vs__clear {
+  fill: var(--p-red-400);
+}
+
+.form .vs__spinner,
+.vs__spinner::after {
+  width: 3em;
+  height: 3em;
+}
+
+.form .vs__dropdown-toggle {
+  border: none;
+}
+
+/*-----------------easy table vue 3-----------------*/
+.customize-table {
+  --easy-table-header-background-color: transparent;
+  --easy-table-body-row-background-color: transparent;
+  --easy-table-footer-background-color: transparent;
+  --easy-table-loading-mask-background-color: transparent;
+  border-radius: 5px;
+  --easy-table-border: var(--border-width-table) solid var(--border-color);
+  --easy-table-row-border: var(--easy-table-border);
+  --easy-table-buttons-pagination-border: var(--easy-table-row-border);
+  --easy-table-header-font-size: var(--font-size-th);
+  --easy-table-header-font-color: var(--text-color-th);
+  --easy-table-header-item-padding: 15px 15px;
+  --easy-table-body-item-padding: 10px 15px;
+  --easy-table-body-row-font-color: var(--text-color-tb);
+  --easy-table-body-row-hover-font-color: var(--text-color-tb-hover);
+  --easy-table-footer-font-size: var(--font-size-th);
+  --easy-table-footer-padding: 0px 10px;
+  --easy-table-footer-height: 50px;
+  --easy-table-footer-font-color: var(--text-color-tf);
+  --easy-table-rows-per-page-selector-width: 70px;
+  --easy-table-rows-per-page-selector-option-padding: 10px;
+  --easy-table-rows-per-page-selector-z-index: 1;
+  --easy-table-scrollbar-track-color: #2d3a4f;
+  --easy-table-scrollbar-color: #2d3a4f;
+  --easy-table-scrollbar-thumb-color: #4c5d7a;
+  --easy-table-scrollbar-corner-color: #2d3a4f;
+  --easy-table-message-font-size: calc(1px + var(--font-size-th));
+  --easy-table-message-font-color: var(--text-color);
+}
+
+.customize-table .previous-page__click-button .arrow,
+.customize-table .next-page__click-button .arrow {
+  border-top: 2px solid var(--text-color-th) !important;
+  border-left: 2px solid var(--text-color-th) !important;
+}
+
+.customize-table .previous-page__click-button.first-page .arrow,
+.customize-table .next-page__click-button.last-page .arrow {
+  border-color: var(--disable-color) !important;
+}
+
+.customize-table .easy-data-table__rows-selector ul.select-items li {
+  background-color: rgb(var(--primary-inverse));
+}
+
+.customize-table .vue3-easy-data-table__main.fixed-header th {
+  font-weight: 455;
+}
+
+.customize-table .easy-data-table__rows-selector ul.select-items {
+  top: 40px;
+}
+
+.customize-table .easy-data-table__rows-selector .rows-input__wrapper {
+  border-bottom: none;
+}
+
+.customize-table .p-speeddial .p-button-icon-only {
+  padding: 3px 10px;
+  --p-icon-size: 0.6rem;
+  --p-button-icon-only-width: 1.5rem;
+}
+
+.customize-table .p-speeddial .p-speeddial-item > .p-button-icon-only {
+  padding: 10px 10px;
+}
+
+/*----------------- text line (jumllah baris text) -----------------*/
+
+.text-line {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------- */
+/* Vue Premiere*/
+/* -------------------------------------------------------- */
+
+:root {
+  /* Taost */
+  /* -------------------------------------------------------- */
+  --toast-success-bg-color-v: var(--p-primary-50);
+  --toast-success-border-color-v: var(--p-primary-200);
+  --toast-success-color-v: var(--p-primary-600);
+  --toast-success-shadow-v: var(--p-primary-500);
+  --p-toast-success-background: color-mix(in srgb, var(--toast-success-bg-color-v), transparent 5%);
+  --p-toast-success-border-color: var(--toast-success-border-color-v);
+  --p-toast-success-color: var(--toast-success-color-v);
+  --p-toast-success-shadow: 0px 4px 8px 0px
+  color-mix(in srgb, var(--toast-success-shadow-v), transparent 96%);
+}
+
+/* form */
+
+.form input::placeholder {
+  color: var(--form-placeholder-color);
+}
+
+.form > :nth-child(2) {
+  margin-top: 10px;
+}
+
+
+.form .p-inputtext {
+  width: 100%;
+  --p-inputtext-background: var(--form-bg);
+  --p-inputtext-border-color: var(--form-border-color);
+  padding: 8px 15px;
+  border: 1px solid var(--form-border-color);
+  border-radius: 5px;
+  font-size: unset;
+}
+
+.form .p-inputtext:enabled:hover {
+  border-color: var(--form-border-color-active);
+}
+
+.form .p-inputtext:enabled:focus,
+  .form .p-datepicker:not(.p-datepicker-disabled).p-focus > .p-inputtext,
+  .p-datepicker table td > span:focus {
+  box-shadow: var(--form-focus-shadow);
+  border-color: var(--form-border-color-active);
+}
+
+.p-inputtext:disabled {
+  --p-inputtext-disabled-background: var(--p-primary-50);
+}
+
+.form .p-inputtext[readonly] {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* calender */
+
+.form .p-datepicker .p-inputtext {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.form .p-datepicker .p-datepicker-input-icon-container {
+  top: 57%;
+}
+
+.form .p-icon-field > .p-input-icon {
+  margin-top: -0.2rem;
+}
+
+.form .p-icon-field-right > .p-input-icon:last-of-type {
+  color: var(--form-border-color-active);
+}
+
+.form .p-datepicker {
+  width: 100%;
+}
+
+.p-datepicker-calendar-container .p-datepicker-header .p-button-icon-only {
+  padding: 13px;
+}
+
+.p-datepicker-calendar-container .p-datepicker-header .p-button-text.p-button-secondary .p-icon {
+  position: absolute;
+  --p-icon-size: 0.8rem;
+}
+
+.form .p-inputswitch {
+  width: 2rem;
+  height: 1rem;
+}
+
+.form .p-inputswitch .p-inputswitch-slider::before {
+  width: 1rem;
+  height: 1rem;
+  left: -0.25rem;
+  margin-top: -0.52rem;
+}
+/* input number */
+.form .p-inputgroup {
+  margin-top: 10px;
+}
+
+.form .p-inputgroup .p-inputnumber {
+  margin-top: 0;
+}
+
+.form .p-inputnumber {
+  margin-top: 10px;
+  --p-inputnumber-button-width: 2rem;
+}
+
+.form .p-inputnumber .p-inputtext {
+  margin: 0;
+}
+
+/* button */
+
+.p-button-icon-only {
+  line-height: 0;
+}
+
+.p-button-sm.p-button-icon-only {
+  --p-button-sm-icon-only-width: 1.7rem;
+}
+
+.p-button-icon-only.p-button-lg {
+  --p-button-lg-font-size: 1.5rem;
+  padding: 5px 16px;
+}
+
+/* panel */
+
+.p-panel .p-panel-header-actions .p-button-icon-only {
+  padding: 10px;
+}
+
+.p-panel .p-panel-header-actions .p-icon {
+  position: absolute;
+  --p-icon-size: 0.5rem;
+}
+
+/* tab view */
+
+.p-tabview a {
+  text-decoration: none;
+  color: #6b7280;
+}
+
+.p-tabview li {
+  margin: 0 0 -2px 0;
+}
+
+.p-tabview ol,
+.p-tabview ul,
+.p-tabview dl {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.p-tabview ol,
+.p-tabview ul {
+  padding-left: 0;
+}
+
+.p-tabview li.p-highlight {
+  border: 1px solid var(--color-primary);
+  border-width: 0 0 2px 0;
+}
+
+/* dialog */
+.p-dialog .p-dialog-maximize-button {
+  padding: 1px;
+  --p-button-text-secondary-color: var(--color-primary);
+}
+
+.p-dialog .p-dialog-close-button {
+  padding: unset;
+  --p-button-text-secondary-color: var(--p-rose-200);
+}
+
+.p-dialog button.p-dialog-close-button .p-icon {
+  --p-icon-size: 0.7rem;
+}
+
+.p-dialog button.p-dialog-close-button {
+  outline: unset;
+  --p-button-icon-only-width: 1.3rem;
+}
+
+.p-dialog button.p-dialog-close-button:not(:disabled):hover {
+  background: var(--p-rose-400);
+  --p-button-text-secondary-color: var(--p-violet-50);
+}
+
+.p-dialog .p-dialog-footer {
+  padding: 0.8rem 1.5rem;
+}
+
+/* tooltip */
+.p-tooltip-arrow {
+  border-top-color: var(--color-primary);
+}
+
+.p-tooltip-text {
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: var(--font-size);
+}
+
+/* Avatar Setting Image */
+/* -------------------------------------------------------- */
+
+.p-avatar.p-avatar-xl.profile {
+  width: 12rem;
+  height: 12rem;
+  font-size: 3rem;
+}
+
+/* Stepper */
+/* -------------------------------------------------------- */
+
+.p-steps .p-steps-item:before {
+  border-width: 1px;
+  border-color: var(--color-primary);
+  margin-top: 0;
+  z-index: 0;
+}
+
+.p-steps .p-steps-list .p-steps-item span {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1rem;
+  line-height: 1;
+  text-align: center;
+  z-index: 1;
+}
+
+.p-steps .p-steps-item:first-child::before {
+  width: calc(50% + 1.5rem);
+  transform: translateX(100%);
+}
+
+.p-steps .p-steps-item:last-child::before {
+  width: 50%;
+}
+
+/* Table Prime */
+/* -------------------------------------------------------- */
+.p-datatable .p-paginator {
+  --p-paginator-padding: 0;
+}
+
+.p-datatable .p-datatable-column-title {
+  --p-datatable-column-title-font-weight: 500;
+}
+/* Poper Prime */
+/* -------------------------------------------------------- */
+.p-popover::after,
+  .p-popover::before {
+  --p-popover-arrow-left: 73px;
+  --p-popover-arrow-offse: 1.24rem;
+}
+
+/* Mega Menu Prime */
+/* -------------------------------------------------------- */
+.p-megamenu {
+  --p-megamenu-background: transparent;
+  --p-megamenu-border-color: transparent;
+}
+
+/* Material Icons */
+/* -------------------------------------------------------- */
+.material-icons,
+.material-icons-round {
+  font-size: revert-layer;
+}

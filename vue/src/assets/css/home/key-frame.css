@@ -1,0 +1,36 @@
+@keyframes panel-animation-in {
+  0% {
+    transform: scaleY(0);
+    padding-bottom: 0;
+    opacity: 0;
+  }
+
+  30% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+    padding-bottom: 40px;
+  }
+}
+
+@keyframes panel-animation-out {
+  0% {
+    opacity: 1;
+    transform: scaleY(1);
+    padding-bottom: 40px;
+  }
+
+  30% {
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scaleY(0);
+    padding-bottom: 0;
+    opacity: 0;
+  }
+}

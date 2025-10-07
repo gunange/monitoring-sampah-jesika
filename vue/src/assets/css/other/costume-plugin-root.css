@@ -1,0 +1,70 @@
+:root {
+  --background: var(--p-content-background);
+  --body-color: var(--p-button-secondary-background);
+  --text-color: var(--p-text-color);
+}
+
+:root {
+  --p-form-field-background: var(--form-bg);
+  --p-form-field-disabled-background: var(--p-surface-400);
+  --p-form-field-border-color: var(--form-border-color);
+  --p-form-field-color: var(--text-color);
+  --p-inputtext-padding-y: 0.7rem;
+  --p-rating-icon-active-color: #ffe100ff;
+  --p-rating-icon-color: #7996FFFF;
+  /* vue select */
+  --vs-font-size: var(--font-size);
+  --vs-dropdown-option--active-bg: var(--color-primary);
+  --bg-img: url('/assets/images/image/bg.jpg');
+  --bg-linier: linear-gradient(21deg, #1375FFE6, rgba(20, 137, 255, 0.05) 83.81%);
+}
+
+@layer primevue {
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text-color-50: #4E89F6FF !important;
+      --text-color-disable: #9d9c9c !important;
+      --background-50: #37246d !important;
+      --form-shadow-color: var(--p-primary-700) !important;
+      --form-border-color: var(--p-blue-800) !important;
+      --form-bg: #373739 !important;
+      /* toast */
+      --toast-success-bg-color-v: var(--p-primary-950) !important;
+      --toast-success-border-color-v: var(--p-primary-800) !important;
+      --toast-success-color-v: var(--p-primary-500) !important;
+      --toast-success-shadow-v: var(--p-primary-900) !important;
+      /* bedge */
+      --p-badge-primary-color: #f4f3f3 !important;
+      --p-badge-danger-color: var(--p-badge-primary-color) !important;
+      --p-overlaybadge-outline-color: transparent !important;
+      /* button */
+      --p-button-primary-color: var(--p-surface-0) !important;
+      /* table */
+    }
+
+    .dashboard {
+      --border-color: var(--p-surface-500) !important;
+    }
+
+    .customize-table {
+      --text-color-th: #ebebeb !important;
+      --text-color-tb: #cacacb !important;
+      --disable-color: #626264 !important;
+    }
+    .customize-table .expand {
+      --easy-table-body-row-hover-background-color: #7f7f80ff !important ;
+    }
+
+    .dashboard .card .card-header {
+      --border-color: var(--p-surface-600);
+    }
+
+    body {
+      background-color: #3a3a3a !important;
+    }
+  }
+
+  :root {
+    --p-button-sm-font-size: 0.7rem !important;
+  }
+}
