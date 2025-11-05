@@ -7,8 +7,8 @@ export async function roleSeed() {
       update: {},
       create: {
          id: 1,
-         label: "Owner",
-         role: "0wn3r",
+         label: "Administrator",
+         role: "4dm1n",
       },
    });
    await prisma.role.upsert({
@@ -16,8 +16,8 @@ export async function roleSeed() {
       update: {},
       create: {
          id: 2,
-         label: "Barista",
-         role: "b4r157a",
+         label: "Petugas",
+         role: "p3tug45",
       },
    });
 }
