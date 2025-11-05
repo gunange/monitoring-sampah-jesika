@@ -17,7 +17,7 @@ app.use("*", LogClientAcsses);
 // Routing
 app.route("/publics", Route.publics);
 app.route("/user", Route.user);
-app.route("/owner", Route.owner);
+app.route("/admin", Route.admin);
 app.route("/petugas", Route.petugas);
 
 // Handler 404

@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import * as Middleware from "@/middleware";
-import { OwnerRoute } from "@/controllers/admin";
+import { AdminRoute } from "@/controllers/admin";
 import { UserService } from "@/services/UserService";
 import { UserResponse } from "@/response/UserResponse";
 
-export const owner = new Hono();
+export const admin = new Hono();
 
-const userServiceStore = UserService.owner.store;
+const userServiceStore = UserService.admin.store;
 
-owner.use("/*", async (c, next) => {
+admin.use("/*", async (c, next) => {
    return userServiceStore.run(() =>
       Middleware.AuthBearer(
          c,
@@ -21,15 +21,15 @@ owner.use("/*", async (c, next) => {
    );
 });
 
-owner.get("", (c) =>
+admin.get("", (c) =>
    c.json({
       data: UserResponse.auth(userServiceStore.user),
    })
 );
 
-/* ---- barista ---- */
-owner.get("/petugas", OwnerRoute.PetugasCtrl.index);
-owner.post("/petugas", OwnerRoute.PetugasCtrl.store);
-owner.patch("/petugas/:id", OwnerRoute.PetugasCtrl.update);
-owner.patch("/petugas/reset-password/:id", OwnerRoute.PetugasCtrl.resetPassword);
-owner.delete("/petugas/:id", OwnerRoute.PetugasCtrl.destroy);
+/* ---- petugas ---- */
+admin.get("/petugas", AdminRoute.PetugasCtrl.index);
+admin.post("/petugas", AdminRoute.PetugasCtrl.store);
+admin.patch("/petugas/:id", AdminRoute.PetugasCtrl.update);
+admin.patch("/petugas/reset-password/:id", AdminRoute.PetugasCtrl.resetPassword);
+admin.delete("/petugas/:id", AdminRoute.PetugasCtrl.destroy);

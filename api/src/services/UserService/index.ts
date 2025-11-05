@@ -1,8 +1,8 @@
-import { owner } from "./owner";
+import { admin } from "./admin";
 import { petugas } from "./petugas";
 
 export const UserService = {
-   owner,
+   admin,
    petugas,
 };
 
