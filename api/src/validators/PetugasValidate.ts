@@ -1,17 +1,15 @@
 import * as util from "@/utils";
-import { timeNow } from "@/utils/convert/time-zone-parse";
 
-
-export class PembayaranValidate {
+export class PetugasValidate {
    static async upsert(c: util.Context) {
       const validate: util.ZodType = util.zod.object({
-         method: util.zod.enum(["CASH", "CARD", "QRIS"]),
-         jumlah : util.zod.number(),
+         nama: util.zod.string(),
+         noHp: util.zod.string(),
       });
 
       let data = await validate.parse(await util.HeandleRequest.parse(c));
-      data.paidAt = timeNow().toJSDate();
 
       return data;
    }
+ 
 }

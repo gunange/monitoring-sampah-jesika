@@ -10,6 +10,7 @@ export class MejaValidate {
          status: util.zod
             .enum(["TERSEDIA", "TERISI", "DIPESAN"])
             .default("TERSEDIA"),
+            method: util.zod.enum(["CASH", "CARD", "QRIS"]),
       });
 
       let data = await validate.parse(await util.HeandleRequest.parse(c));

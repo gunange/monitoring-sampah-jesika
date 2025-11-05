@@ -1,13 +1,11 @@
-import { owner } from "./owner";
-import { barista } from "./barista";
+import { owner } from "./admin";
+import { petugas } from "./petugas";
 import { publics } from "./publics";
 import { user } from "./user";
-import { pelanggan } from "./pelanggan";
 
 export const Route = {
    user,
    owner,
-   barista,
+   petugas,
    publics,
-   pelanggan
 };

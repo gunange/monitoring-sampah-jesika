@@ -67,13 +67,11 @@ export class Controller {
 
    routeRedirect(data: any): any {
       var routeTo = null;
-      if (data && data.role === "4dm1n1sTr4t0r") {
+      if (data && data.role === "4dm1n") {
          routeTo = "/admin";
-      } else if (data && data.role === "c4m4t") {
-         routeTo = "/camat";
-      } else if (data && data.role === "st4f") {
-         routeTo = "/staf";
-      }
+      } else if (data && data.role === "petugas") {
+         routeTo = "/petugas";
+      } 
       return routeTo;
    }
 

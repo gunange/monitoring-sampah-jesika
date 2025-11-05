@@ -1,8 +1,8 @@
 import prismaClient from "@/app/database";
-import type { BaristaProfile } from "@/types/BaristaTypes";
+import type { PetugasProfile } from "@/types/PetugasTypes";
 
-export async function getByUserId(userId: number): Promise<BaristaProfile> {
-   return await prismaClient.barista
+export async function getByUserId(userId: number): Promise<PetugasProfile> {
+   return await prismaClient.petugas
       .findFirstOrThrow({
          where: {
             userId: userId,
@@ -16,7 +16,7 @@ export async function getByUserId(userId: number): Promise<BaristaProfile> {
          },
       })
       .catch((err) => {
-         err.meta.message = "Tidak menemukan user barista";
+         err.meta.message = "Tidak menemukan user petugas";
          throw err;
       });
 }

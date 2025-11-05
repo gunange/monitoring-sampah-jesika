@@ -1,12 +1,10 @@
-import type { BaristaProfile } from "@/types/BaristaTypes";
+import type { PetugasProfile } from "@/types/PetugasTypes";
 
-export function profil(db: BaristaProfile) {
+export function profil(db: PetugasProfile) {
    if (!db) return {};
 
-   // hapus properti yang tidak diinginkan
    const { id, userId, User, ...rest } = db;
 
-   // hapus properti yang tidak diinginkan dari User
    const {
       id: usersId,
       role_id,
@@ -20,7 +18,6 @@ export function profil(db: BaristaProfile) {
 
    return {
       ...rest,
-
       User: {
          ...userRest,
          role_label: Role?.label,

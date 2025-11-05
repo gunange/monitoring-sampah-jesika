@@ -1,5 +1,5 @@
 import { store } from "./store"
 
-export const barista ={
+export const petugas ={
     store
 }

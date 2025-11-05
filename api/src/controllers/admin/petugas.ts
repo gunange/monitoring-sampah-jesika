@@ -1,7 +1,8 @@
 import { UsersRepo } from "@/repositories";
 import * as utils from "@/utils";
-import { BaristaValidate } from "@/validators/BaristaValidate";
+import { PetugasValidate } from "@/validators/PetugasValidate";
 import { UserValidate } from "@/validators/UserValidate";
+
 
 const role_id = 2;
 const includeData = {
@@ -12,10 +13,10 @@ const includeData = {
    },
 };
 
-export class BaristaCtrl {
+export class PetugasCtrl {
    static async index(c: utils.Context): Promise<any> {
       return c.json({
-         data: await utils.dbClient.barista.findMany({
+         data: await utils.dbClient.petugas.findMany({
             orderBy: {
                id: "desc",
             },
@@ -30,7 +31,7 @@ export class BaristaCtrl {
       });
    }
    static async store(c: utils.Context): Promise<any> {
-      const data = await BaristaValidate.upsert(c);
+      const data = await PetugasValidate.upsert(c);
       const dataUser = await UserValidate.registrasiUsernameOnly(c);
 
       const username = dataUser.username;
@@ -42,7 +43,7 @@ export class BaristaCtrl {
 
       data.userId = user.id;
       return c.json({
-         data: await utils.dbClient.barista.create({
+         data: await utils.dbClient.petugas.create({
             data: data,
             include : includeData
          }),
@@ -51,9 +52,9 @@ export class BaristaCtrl {
       });
    }
    static async update(c: utils.Context): Promise<any> {
-      const data = await BaristaValidate.upsert(c);
+      const data = await PetugasValidate.upsert(c);
       return c.json({
-         data: await utils.dbClient.barista.update({
+         data: await utils.dbClient.petugas.update({
             where: {
                id: Number(c.req.param("id")),
             },
@@ -64,7 +65,7 @@ export class BaristaCtrl {
       });
    }
    static async resetPassword(c: utils.Context): Promise<any> {
-      const barista = await utils.dbClient.barista.findFirstOrThrow({
+      const petugas = await utils.dbClient.petugas.findFirstOrThrow({
          where: {
             id: Number(c.req.param("id")),
          },
@@ -73,7 +74,7 @@ export class BaristaCtrl {
 
       const { data, message } = await UsersRepo.resetPassword(
          c,
-         barista.userId
+         petugas.userId
       );
 
       return c.json({
@@ -83,7 +84,7 @@ export class BaristaCtrl {
    }
 
    static async destroy(c: utils.Context): Promise<any> {
-      const data = await utils.dbClient.barista.findFirstOrThrow({
+      const data = await utils.dbClient.petugas.findFirstOrThrow({
          where: {
             id: Number(c.req.param("id")),
          },
@@ -98,4 +99,5 @@ export class BaristaCtrl {
          message: "Data berhasil dihapus",
       });
    }
+
 }

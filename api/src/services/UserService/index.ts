@@ -1,9 +1,9 @@
 import { owner } from "./owner";
-import { barista } from "./barista";
+import { petugas } from "./petugas";
 
 export const UserService = {
    owner,
-   barista,
+   petugas,
 };
 
 export type {};

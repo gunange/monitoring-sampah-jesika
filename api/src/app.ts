@@ -15,11 +15,10 @@ app.use(cors());
 app.use("*", LogClientAcsses);
 
 // Routing
-app.route("/pelanggan", Route.pelanggan);
 app.route("/publics", Route.publics);
 app.route("/user", Route.user);
 app.route("/owner", Route.owner);
-app.route("/barista", Route.barista);
+app.route("/petugas", Route.petugas);
 
 // Handler 404
 app.notFound((c) =>

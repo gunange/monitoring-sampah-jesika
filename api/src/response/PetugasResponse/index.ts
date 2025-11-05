@@ -1,5 +1,5 @@
 import { profil } from "./profil";
 
-export const BaristaResponse = {
+export const PetugasResponse = {
     profil
 }

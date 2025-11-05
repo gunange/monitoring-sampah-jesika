@@ -3,8 +3,8 @@ import * as utils from "@/utils";
 import { AsyncLocalStorage } from "async_hooks";
 
 import type { StoreContext, User } from "./store-context";
-import { BaristaRepo } from "@/repositories/BaristaRepo";
-import type { BaristaProfile } from "@/types/BaristaTypes";
+import { PetugasRepo } from "@/repositories/PetugasRepo";
+import type { PetugasProfile } from "@/types/PetugasTypes";
 
 const storage = new AsyncLocalStorage<StoreContext>();
 export const store = {
@@ -22,7 +22,7 @@ export const store = {
          if (user) store.user = user;
          if (token) store.token = token;
 
-         const kepsek = await BaristaRepo.getByUserId(user.id);
+         const kepsek = await PetugasRepo.getByUserId(user.id);
          if (kepsek) store.kepsek = kepsek;
       }
    },
@@ -37,8 +37,8 @@ export const store = {
       return storage.getStore()?.user;
    },
 
-   get profil(): BaristaProfile {
-      return storage.getStore()?.kepsek as BaristaProfile;
+   get profil(): PetugasProfile {
+      return storage.getStore()?.kepsek as PetugasProfile;
    },
 
    get token(): string | undefined {
