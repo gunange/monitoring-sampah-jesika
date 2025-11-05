@@ -4,12 +4,12 @@ const routes = [
    {
       path: "",
       name: `${path_route}-main`,
-      component: () => import("@/views/dashboard/admin/camat.vue"),
+      component: () => import("@/views/dashboard/admin/petugas.vue"),
    },
    {
-      path: "camat",
-      name: `${path_route}-camat`,
-      component: () => import("@/views/dashboard/admin/camat.vue"),
+      path: "petugas",
+      name: `${path_route}-petugas`,
+      component: () => import("@/views/dashboard/admin/petugas.vue"),
    },
    {
       path: "staf",

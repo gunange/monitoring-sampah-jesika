@@ -13,7 +13,7 @@
 			<div class="card">
 				<div class="card-header flex justify-between">
 					<div class="flex-none flex items-center">
-						<h6><i class="pi pi-sparkles" /> <span>Camat Setting</span></h6>
+						<h6><i class="pi pi-sparkles" /> <span>Petugas Setting</span></h6>
 					</div>
 
 					<div class="flex items-center justify-end">
@@ -142,8 +142,8 @@
 
 	// config path
 	import { dataEnv } from "@/components/dashboard/admin/config/index.ts";
-	import { MainData } from "@/components/dashboard/admin/cruds/camat/controller";
-	import Cruds from "@/components/dashboard/admin/cruds/camat/views/index.vue";
+	import { MainData } from "@/components/dashboard/admin/cruds/petugas/controller";
+	import Cruds from "@/components/dashboard/admin/cruds/petugas/views/index.vue";
 
 	const main = new MainData();
 

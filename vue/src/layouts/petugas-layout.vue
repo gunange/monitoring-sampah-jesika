@@ -2,14 +2,14 @@
 	import { RouterView } from "vue-router";
 	import MainDashboard from "@/widgets/layouts/dashboard/main-dashboard.vue";
 
-	import { dashboard, dataEnv } from "@/components/dashboard/staf/config/index";
+	import { dashboard, dataEnv } from "@/components/dashboard/petugas/config/index";
 </script>
 
 <template>
 	<main>
 		<MainDashboard
 			:sidebar="dashboard.sidebar"
-			title="Staf"
+			title="Petugas"
 			:sub-title="'@' + user?.User?.username"
 			:nama="user?.nama"
 			:navbar="dashboard.navbar"
@@ -21,7 +21,7 @@
 
 <script>
 	import { AuthController } from "@/controller/controllers/AuthController.ts";
-	import { Controller as UserStorageController } from "@/components/dashboard/staf/controller.ts";
+	import { Controller as UserStorageController } from "@/components/dashboard/petugas/controller.ts";
 	import { RequestApiController } from "@/controller/others/RequestApiController";
 
 	const auth = new AuthController();
@@ -37,7 +37,7 @@
 			await auth.init();
 			apiC.resetPath();
 
-			if (auth.store.isAuth && auth.store.user.User.role === "st4f") {
+			if (auth.store.isAuth && auth.store.user.User.role === "petugas") {
 				auth.setToken();
 				next();
 				return;

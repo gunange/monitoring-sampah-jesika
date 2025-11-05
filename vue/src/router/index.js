@@ -4,26 +4,16 @@ import 'nprogress/nprogress.css'
 
 import HomeChildren from './children/home.js'
 import AdminChildren from './children/admin.js'
+import PetugasChildren from './children/petugas.js'
 import CamatChildren from './children/camat.js'
 import StafChildren from './children/staf.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // {
-    //   path: '/',
-    //   name: 'home',
-    //   component: () => import('@/layouts/home-layout.vue'),
-    //   children: HomeChildren,
-    // },
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/others/login.vue'),
-    },
-    {
-      path: '/login',
-      name: 'login',
       component: () => import('@/views/others/login.vue'),
     },
     {
@@ -31,6 +21,12 @@ const router = createRouter({
       name: 'admin',
       component: () => import('@/layouts/admin-layout.vue'),
       children: AdminChildren,
+    },
+    {
+      path: '/petugas',
+      name: 'petugas',
+      component: () => import('@/layouts/petugas-layout.vue'),
+      children: PetugasChildren,
     },
     {
       path: '/camat',
