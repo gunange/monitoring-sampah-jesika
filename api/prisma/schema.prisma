@@ -67,7 +67,7 @@ model Storage {
 model Petugas {
   id         Int      @id @default(autoincrement())
   userId     Int      @unique
-  noHp       String   @unique
+  nip       String   
   nama       String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

@@ -159,7 +159,6 @@
 					th: [
 						{ text: "Nama", value: "nama" },
 						{ text: "NIP", value: "nip" },
-						{ text: "No HP", value: "no_hp" },
 						{ text: "Username", value: "User.username" },
 						{ text: "Created", value: "created_at" },
 						{ text: "Updated", value: "updated_at" },

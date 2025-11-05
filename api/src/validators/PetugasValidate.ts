@@ -4,7 +4,7 @@ export class PetugasValidate {
    static async upsert(c: util.Context) {
       const validate: util.ZodType = util.zod.object({
          nama: util.zod.string(),
-         noHp: util.zod.string(),
+         nip: util.zod.string(),
       });
 
       let data = await validate.parse(await util.HeandleRequest.parse(c));

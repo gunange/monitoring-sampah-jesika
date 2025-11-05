@@ -54,6 +54,7 @@
 </script>
 
 <template>
+	 <!-- eslint-disable vue/no-v-model-argument -->
 	<main>
 		<Dialog
 			v-model:visible="modal.show"
@@ -110,29 +111,6 @@
 							<InputText
 								v-bind="field"
 								placeholder="Masukan NIP"
-								class="text-xs"
-								autocomplete="off"
-							/>
-						</VeeField>
-					</div>
-
-					<div class="form">
-						<VeeField
-							v-slot="{ field }"
-							name="no_hp"
-							rules="required|phone"
-							v-model="form.no_hp"
-						>
-							<label>
-								<span>No Handphone</span>
-								<span class="text-red-500">
-									* <VeeErrorMessage name="no_hp" />
-								</span>
-							</label>
-
-							<InputText
-								v-bind="field"
-								placeholder="Masukan No HP"
 								class="text-xs"
 								autocomplete="off"
 							/>
