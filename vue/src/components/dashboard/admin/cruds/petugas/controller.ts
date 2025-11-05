@@ -12,13 +12,13 @@ import {
 
 export class Controller {
    get collection() {
-      return `${dataEnv.path_api}/camat`;
+      return `${dataEnv.path_api}/petugas`;
    }
    get time() {
       return new TimeApp();
    }
    get storage() {
-      return userStorage().camat;
+      return userStorage().petugas;
    }
 }
 export class Cruds extends Controller {

@@ -7,11 +7,9 @@ export const storeId = "admin-store";
 export const userStorage = defineStore(storeId, {
    state: (): {
       websocket: WebSocket | null;
-      camat: StoreDataFormApi;
-      staf: StoreDataFormApi;
+      petugas: StoreDataFormApi;
    } => ({
-      staf: { ...atribut.storeDefault },
-      camat: { ...atribut.storeDefault },
+      petugas: { ...atribut.storeDefault },
       websocket: null,
    }),
 });

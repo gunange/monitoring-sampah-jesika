@@ -11,11 +11,6 @@ const routes = [
       name: `${path_route}-petugas`,
       component: () => import("@/views/dashboard/admin/petugas.vue"),
    },
-   {
-      path: "staf",
-      name: `${path_route}-staf`,
-      component: () => import("@/views/dashboard/admin/staf.vue"),
-   },
    
 
    // not-found

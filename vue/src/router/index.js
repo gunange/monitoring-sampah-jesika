@@ -2,11 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
-import HomeChildren from './children/home.js'
 import AdminChildren from './children/admin.js'
 import PetugasChildren from './children/petugas.js'
-import CamatChildren from './children/camat.js'
-import StafChildren from './children/staf.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,18 +24,6 @@ const router = createRouter({
       name: 'petugas',
       component: () => import('@/layouts/petugas-layout.vue'),
       children: PetugasChildren,
-    },
-    {
-      path: '/camat',
-      name: 'camat',
-      component: () => import('@/layouts/camat-layout.vue'),
-      children: CamatChildren,
-    },
-    {
-      path: '/staf',
-      name: 'staf',
-      component: () => import('@/layouts/staf-layout.vue'),
-      children: StafChildren,
     },
 
     // not-found
