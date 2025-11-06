@@ -4,6 +4,7 @@ app/__pycache__
 router/__pycache__
 data/raw
 data/detections
+data/dataset.json
 .env
 .venv
 logs
