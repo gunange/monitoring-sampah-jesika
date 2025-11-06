@@ -8,3 +8,4 @@ pillow
 joblib
 pydantic
 requests
+python-multipart
