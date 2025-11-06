@@ -22,23 +22,30 @@ def dataset_html():
         </head>
         <body>
           <div class="badge">Dataset Latih</div>
-          <div class="wrap"><img id="img" src="/stream" /></div>
+          <div class="wrap">
+            <div id="placeholder" style="width:85vw;height:60vh;background:#000;display:flex;align-items:center;justify-content:center;color:#ddd;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)">Waiting for camera...</div>
+            <img id="img" style="display:none" alt="camera" />
+          </div>
           <div class="toolbar">
             <button id="startCam" class="primary">Mulai Kamera</button>
             <button id="saveBersih">Simpan BERSIH</button>
             <button id="saveSampah" class="danger">Simpan ADA SAMPAH</button>
-            <button id="trainKNN">Latih KNN (k=5)</button>
             <span id="dsInfo"></span>
           </div>
-          <div class="note">Kamera perlu dinyalakan manual. Setelah cukup sampel, latih KNN.</div>
+          <div class="note">Jika stream gagal, halaman otomatis pakai fallback snapshot.</div>
           <script>
             const dsInfo = document.getElementById('dsInfo');
             const img = document.getElementById('img');
+            const placeholder = document.getElementById('placeholder');
+
+            function showImage() {
+              img.style.display = '';
+              placeholder.style.display = 'none';
+            }
 
             async function refreshDataset() {
               const s = await (await fetch('/dataset/status')).json();
-              const k = await (await fetch('/knn/status')).json();
-              dsInfo.textContent = `Dataset: BERSIH=${s.BERSIH} • ADA_SAMPAH=${s.ADA_SAMPAH} • KNN loaded=${k.loaded}`;
+              dsInfo.textContent = `Dataset: BERSIH=${s.BERSIH} • ADA_SAMPAH=${s.ADA_SAMPAH}`;
             }
             refreshDataset();
 
@@ -49,12 +56,14 @@ def dataset_html():
               usingRawFallback = false;
               if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
               img.src = '/stream?ts=' + Date.now();
+              showImage();
             }
 
             function attachRawFallback() {
               if (usingRawFallback) return;
               usingRawFallback = true;
               img.src = '/frame/raw?ts=' + Date.now();
+              showImage();
               if (rawTimer) clearInterval(rawTimer);
               rawTimer = setInterval(() => {
                 img.src = '/frame/raw?ts=' + Date.now();
@@ -66,22 +75,18 @@ def dataset_html():
             });
 
             async function tryStartCamera() {
+              attachRawFallback();
               await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'AVFOUNDATION'})});
-              await new Promise(r => setTimeout(r, 400));
-
-              const st = await (await fetch('/status')).json();
+              await new Promise(r => setTimeout(r, 500));
+              let st = await (await fetch('/status')).json();
               if (!st.camera || st.camera.open !== true) {
                 await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'ANY'})});
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 700));
+                st = await (await fetch('/status')).json();
               }
-
-              const st2 = await (await fetch('/status')).json();
-              if (st2.camera && st2.camera.open === true) {
+              if (st.camera && st.camera.open === true) {
                 attachStream();
-              } else {
-                attachRawFallback();
               }
-
               refreshDataset();
             }
 
@@ -97,13 +102,6 @@ def dataset_html():
             }
             document.getElementById('saveBersih').onclick = () => saveLabel('BERSIH');
             document.getElementById('saveSampah').onclick = () => saveLabel('ADA_SAMPAH');
-
-            document.getElementById('trainKNN').onclick = async () => {
-              const r = await fetch('/knn/train', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({neighbors:5})});
-              const j = await r.json();
-              alert(j.ok ? `Model: ${j.modelPath}` : `Training gagal: ${j.error || 'unknown'}`);
-              refreshDataset();
-            };
           </script>
         </body></html>
         """

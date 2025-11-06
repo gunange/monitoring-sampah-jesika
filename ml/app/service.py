@@ -15,9 +15,9 @@ from ..router.frame_router import frame_router
 from ..router.dataset_router import dataset_router
 from ..router.status_router import status_router
 from ..router.stream_router import stream_router
-from ..router.camera_router import camera_router
+# Hapus impor camera_router agar route kamera tidak digunakan
+# from ..router.camera_router import camera_router
 from ..router.knn_router import knn_router
-# module: service.py (set up app dan router)
 app = FastAPI()
 
 _latest_jpeg: bytes | None = None
@@ -325,13 +325,8 @@ def start_worker():
 
 @app.on_event("startup")
 def on_startup():
-    # Jangan auto-start kamera bila dataset kosong; nyalakan manual via /camera atau dataset
-    if dataset_ready():
-        start_worker()
-        logger.info("Startup: dataset tersedia, kamera dibuka.")
-    else:
-        logger.info("Startup: dataset kosong, kamera tidak dibuka.")
-
+    # Jangan auto-start kamera; gunakan tombol Mulai Kamera di halaman dataset
+    logger.info("Startup: kamera tidak dibuka otomatis. Gunakan tombol Mulai Kamera.")
     # Muat KNN jika diaktifkan dan file model tersedia
     try:
         if get_str("KNN_ENABLED", "true").lower() in {"1","true","yes","y"}:
@@ -385,7 +380,8 @@ def mjpeg_from_latest():
     boundary = b"--frame\r\n"
     while True:
         with _state_lock:
-            frame_bytes = _latest_jpeg
+            # Fallback ke raw jika overlay belum ada
+            frame_bytes = _latest_jpeg or _latest_raw_jpeg
             cam = dict(_camera_status)
         if frame_bytes:
             yield (boundary +
@@ -524,7 +520,8 @@ def set_camera(payload: dict):
 @app.get("/frame")
 def frame():
     with _state_lock:
-        frame_bytes = _latest_jpeg
+        # Fallback ke raw jika overlay belum ada
+        frame_bytes = _latest_jpeg or _latest_raw_jpeg
     if not frame_bytes:
         return Response(status_code=204)
     return Response(content=frame_bytes, media_type="image/jpeg")
@@ -557,7 +554,10 @@ def dataset_html():
         </head>
         <body>
           <div class="badge">Dataset Latih</div>
-          <div class="wrap"><img id="img" src="/stream" /></div>
+          <div class="wrap">
+            <div id="placeholder" style="width:85vw;height:60vh;background:#000;display:flex;align-items:center;justify-content:center;color:#ddd;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)">Waiting for camera...</div>
+            <img id="img" style="display:none" alt="camera" />
+          </div>
           <div class="toolbar">
             <button id="startCam" class="primary">Mulai Kamera</button>
             <button id="saveBersih">Simpan BERSIH</button>
@@ -569,6 +569,12 @@ def dataset_html():
           <script>
             const dsInfo = document.getElementById('dsInfo');
             const img = document.getElementById('img');
+            const placeholder = document.getElementById('placeholder');
+
+            function showImage() {
+              img.style.display = '';
+              placeholder.style.display = 'none';
+            }
 
             async function refreshDataset() {
               const s = await (await fetch('/dataset/status')).json();
@@ -584,12 +590,14 @@ def dataset_html():
               usingRawFallback = false;
               if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
               img.src = '/stream?ts=' + Date.now();
+              showImage();
             }
 
             function attachRawFallback() {
               if (usingRawFallback) return;
               usingRawFallback = true;
               img.src = '/frame/raw?ts=' + Date.now();
+              showImage();
               if (rawTimer) clearInterval(rawTimer);
               rawTimer = setInterval(() => {
                 img.src = '/frame/raw?ts=' + Date.now();
@@ -604,24 +612,19 @@ def dataset_html():
             async function tryStartCamera() {
               // Coba AVFOUNDATION terlebih dahulu
               await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'AVFOUNDATION'})});
-              await new Promise(r => setTimeout(r, 400));
+              await new Promise(r => setTimeout(r, 500));
 
-              const st = await (await fetch('/status')).json();
+              let st = await (await fetch('/status')).json();
               if (!st.camera || st.camera.open !== true) {
                 // Ganti ke ANY jika belum terbuka
                 await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'ANY'})});
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 700));
+                st = await (await fetch('/status')).json();
               }
 
-              const st2 = await (await fetch('/status')).json();
-              if (st2.camera && st2.camera.open === true) {
-                // Pasang stream MJPEG; jika gagal, listener di atas akan fallback ke raw
+              if (st.camera && st.camera.open === true) {
                 attachStream();
-              } else {
-                // Tetap gunakan fallback raw jika kamera belum ready
-                attachRawFallback();
               }
-
               refreshDataset();
             }
 
@@ -661,7 +664,8 @@ def set_camera(payload: dict):
 @app.get("/frame")
 def frame():
     with _state_lock:
-        frame_bytes = _latest_jpeg
+        # Fallback ke raw jika overlay belum ada
+        frame_bytes = _latest_jpeg or _latest_raw_jpeg
     if not frame_bytes:
         return Response(status_code=204)
     return Response(content=frame_bytes, media_type="image/jpeg")
@@ -809,3 +813,10 @@ def knn_reload():
         return {"ok": True, "modelPath": str(p)}
     except Exception as e:
         return {"ok": False, "error": f"Gagal reload: {e}"}
+
+# Fungsi route kamera: dinonaktifkan
+@app.post("/camera-disabled")
+def camera_disabled(payload: dict):
+    # ... existing code ...
+    return {"ok": False, "error": "Route /camera dinonaktifkan"}
+    # ... existing code ...
