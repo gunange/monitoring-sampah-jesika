@@ -1,6 +1,7 @@
 # deps
 node_modules/
 app/__pycache__
+router/__pycache__
 data/raw
 data/detections
 .env

@@ -17,6 +17,7 @@ from ..router.status_router import status_router
 from ..router.stream_router import stream_router
 from ..router.camera_router import camera_router
 from ..router.knn_router import knn_router
+# module: service.py (set up app dan router)
 app = FastAPI()
 
 _latest_jpeg: bytes | None = None
@@ -146,11 +147,21 @@ def camera_worker(stop_event: threading.Event):
             logger.error(f"Gagal memuat KNN di worker: {e}")
     detections_json = get_str("DETECTIONS_JSON", "ml/logs/detections.json")
 
-    # Buka kamera
-    cap = open_capture(src, backend)
-    if cap is None:
-        _camera_status.update({"open": False, "src": src, "backend": backend, "last_error": f"Gagal membuka kamera: src={src} backend={backend}"})
-        logger.error(f"Gagal membuka kamera: src={src} backend={backend} | {_camera_status.get('last_error')}")
+    # Buka kamera (retry loop)
+    cap = None
+    while cap is None and not stop_event.is_set():
+        cap = open_capture(src, backend)
+        if cap is None:
+            _camera_status.update({
+                "open": False,
+                "src": src,
+                "backend": backend,
+                "last_error": f"Gagal membuka kamera: src={src} backend={backend}. Akan retry..."
+            })
+            logger.error(f"Gagal membuka kamera: src={src} backend={backend}. Retry 1s")
+            time.sleep(1.0)
+
+    if stop_event.is_set():
         return
 
     # coba set fps (tidak semua backend/driver mendukung)

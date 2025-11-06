@@ -1,9 +1,5 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
-from pathlib import Path
-from ml.app.service import _state_lock, _latest_raw_jpeg
-from ml.app.service import dataset_counts  # gunakan util yang sudah ada
-from ml.app.utils import ensure_dir, timestamp_str
 
 dataset_router = APIRouter()
 
@@ -115,10 +111,17 @@ def dataset_html():
 
 @dataset_router.get("/dataset/status")
 def dataset_status():
+    # Lazy import untuk hindari circular import
+    from ml.app.service import dataset_counts
     return dataset_counts()
 
 @dataset_router.post("/dataset/add")
 def dataset_add(payload: dict):
+    # Lazy import untuk hindari circular import
+    from pathlib import Path
+    from ml.app.service import _state_lock, _latest_raw_jpeg, dataset_counts
+    from ml.app.utils import ensure_dir, timestamp_str
+
     label = str(payload.get("label", "")).upper()
     if label not in {"BERSIH", "ADA_SAMPAH"}:
         return {"ok": False, "error": "Label harus BERSIH atau ADA_SAMPAH"}

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Response
-from ml.app.service import _state_lock, _latest_jpeg, _latest_raw_jpeg
 
 frame_router = APIRouter()
 
 @frame_router.get("/frame")
 def frame():
+    # Lazy import untuk hindari circular import
+    from ml.app.service import _state_lock, _latest_jpeg
     with _state_lock:
         frame_bytes = _latest_jpeg
     if not frame_bytes:
@@ -13,6 +14,8 @@ def frame():
 
 @frame_router.get("/frame/raw")
 def frame_raw():
+    # Lazy import untuk hindari circular import
+    from ml.app.service import _state_lock, _latest_raw_jpeg
     with _state_lock:
         frame_bytes = _latest_raw_jpeg
     if not frame_bytes:

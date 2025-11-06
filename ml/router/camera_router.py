@@ -1,11 +1,12 @@
-import os
 from fastapi import APIRouter
-from ml.app.service import start_worker, logger
 
 camera_router = APIRouter()
 
 @camera_router.post("/camera")
 def set_camera(payload: dict):
+    # Lazy import untuk hindari circular import
+    import os
+    from ml.app.service import start_worker, logger
     src = str(payload.get("src", "0"))
     backend = str(payload.get("backend", "AVFOUNDATION"))
     os.environ["CAMERA_SRC"] = src
