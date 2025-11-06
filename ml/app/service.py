@@ -143,15 +143,33 @@ def get_detection_dir() -> Path:
     return Path(get_str("DETECT_SAVE_DIR", "ml/data/detections"))
 
 def get_dataset_json() -> Path:
-    return get_detection_dir() / "dataset.json"
+    # Simpan dataset.json di root data, bukan di dalam detections
+    return Path("ml/data/dataset.json")
 
 def ensure_detection_dirs():
     try:
+        # Pastikan folder untuk gambar deteksi ada
         detect_dir = get_detection_dir()
         ensure_dir(detect_dir)
+
+        # Pastikan root data ada
+        data_root = Path("ml/data")
+        ensure_dir(data_root)
+
+        # Inisialisasi dataset.json di lokasi baru
         dj = get_dataset_json()
         if not dj.exists():
-            dj.write_text("[]", encoding="utf-8")
+            # Migrasi otomatis dari lokasi lama jika ada
+            old_dj = detect_dir / "dataset.json"
+            if old_dj.exists():
+                try:
+                    items = json.loads(old_dj.read_text(encoding="utf-8") or "[]")
+                    dj.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception as mig_err:
+                    logger.warning(f"Gagal migrasi dataset.json lama: {mig_err}")
+                    dj.write_text("[]", encoding="utf-8")
+            else:
+                dj.write_text("[]", encoding="utf-8")
     except Exception as e:
         logger.error(f"ensure_detection_dirs error: {e}")
 
