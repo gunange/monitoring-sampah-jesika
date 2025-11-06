@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "vue"
+		},
+		{
+			"path": "ml"
 		}
 	],
 	"launch": {
@@ -29,12 +32,44 @@
         "cwd": "${workspaceFolder}/../vue",
         "console": "integratedTerminal",
         "internalConsoleOptions": "neverOpen"
+      },
+      {
+        "name": "ML Service",
+        "type": "python",
+        "request": "launch",
+        "module": "uvicorn",
+        "args": ["ml.app.service:app", "--host", "0.0.0.0", "--port", "3102"],
+        "envFile": "${workspaceFolder:ml}/.env",
+        "env": { "PYTHONPATH": "${workspaceFolder:ml}/.." },
+        "python": "${workspaceFolder:ml}/.venv/bin/python",
+        "cwd": "${workspaceFolder:ml}/..",
+        "console": "integratedTerminal",
+        "justMyCode": true
+      },
+      {
+        "name": "ML Capture",
+        "type": "python",
+        "request": "launch",
+        "module": "ml.app.capture",
+        "args": ["--sample-interval", "10", "--alert-threshold", "12"],
+        "envFile": "${workspaceFolder:ml}/.env",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder:ml}/.."
+        },
+        "python": "${workspaceFolder:ml}/.venv/bin/python",
+        "cwd": "${workspaceFolder:ml}/..",
+        "console": "integratedTerminal",
+        "justMyCode": true
       }
     ],
     "compounds": [
       {
         "name": "All Services",
         "configurations": ["Bun API", "Vue Dev"]
+      },
+      {
+        "name": "All Services + ML",
+        "configurations": ["Bun API", "Vue Dev", "ML Service"]
       }
     ]
   }
