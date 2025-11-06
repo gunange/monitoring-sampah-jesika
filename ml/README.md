@@ -5,10 +5,6 @@
 2. `pip install -r ml/requirements.txt`
 3. `cp ml/.env.example ml/.env` lalu sesuaikan isinya.
 
-## Capture Data
-- Jalankan: `python ml/app/capture.py`
-- Gambar disimpan ke `ml/data/raw/`.
-
 ## Labeling
 - Pindahkan gambar yang ada tumpukan sampah ke `ml/data/labeled/ADA_SAMPAH/`.
 - Yang bersih ke `ml/data/labeled/BERSIH/`.
