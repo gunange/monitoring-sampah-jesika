@@ -1,31 +1,57 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Bun API",
-        "type": "node",
-        "request": "launch",
-        "runtimeExecutable": "bun",
-        "args": ["run", "dev"],
-        "cwd": "${workspaceFolder}/api",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
-      },
-      {
-        "name": "Vue Dev",
-        "type": "node",
-        "request": "launch",
-        "runtimeExecutable": "npm",
-        "args": ["run", "dev"],
-        "cwd": "${workspaceFolder}/vue",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
-      }
-    ],
-    "compounds": [
-      {
-        "name": "All Services",
-        "configurations": ["Bun API", "Vue Dev"]
-      }
-    ]
-  }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Bun API",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "bun",
+      "args": ["run", "dev"],
+      "cwd": "${workspaceFolder}/api",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Vue Dev",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "args": ["run", "dev"],
+      "cwd": "${workspaceFolder}/vue",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "ML Capture",
+      "type": "python",
+      "request": "launch",
+      "module": "ml.app.capture",
+      "args": ["--every", "5", "--src", "0"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/ml/.env",
+      "justMyCode": true
+    },
+    {
+      "name": "ML Service",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["ml.app.service:app", "--host", "0.0.0.0", "--port", "3102"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/ml/.env",
+      "justMyCode": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "All Services",
+      "configurations": ["Bun API", "Vue Dev"]
+    },
+    {
+      "name": "All Services + ML",
+      "configurations": ["Bun API", "Vue Dev", "ML Service"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# deps
+node_modules/
+app/__pycache__
+data/raw
+.env
+.venv
+logs
+
+
+#vscode
+.qodo
+.DS_Store

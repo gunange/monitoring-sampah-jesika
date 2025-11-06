@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+opencv-python         # gunakan ini untuk akses kamera laptop
+# opencv-python-headless  # aktifkan di server tanpa GUI jika perlu
+scikit-learn
+numpy
+pillow
+joblib
+pydantic
+requests
