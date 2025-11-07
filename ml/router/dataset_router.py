@@ -28,7 +28,7 @@ def dataset_html():
         <body>
           <div class="badge">Dataset Latih</div>
           <div class="wrap">
-            <div id="placeholder" style="width:85vw;height:60vh;background:#000;display:flex;align-items:center;justify-content:center;color:#ddd;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)">Waiting for camera...</div>
+            <div id="placeholder" style="width:100vw;height:70vh;background:#000;display:flex;align-items:center;justify-content:center;color:#ddd;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)">Waiting for camera...</div>
             <img id="img" style="display:none" alt="preview" />
           </div>
           <div class="toolbar">
@@ -56,6 +56,10 @@ def dataset_html():
               img.style.display = '';
               placeholder.style.display = 'none';
             }
+            function showPlaceholder() {
+              img.style.display = 'none';
+              placeholder.style.display = 'flex';
+            }
 
             async function refreshDataset() {
               const s = await (await fetch('/dataset/status')).json();
@@ -65,6 +69,24 @@ def dataset_html():
 
             let usingRawFallback = false;
             let rawTimer = null;
+
+            // Tanpa polling: perbarui tombol hanya saat diperlukan
+            async function updateCamButton() {
+              try {
+                const st = await (await fetch('/status')).json();
+                const btn = document.getElementById('startCam');
+                if (st.camera && st.camera.open === true) {
+                  btn.textContent = 'Stop Service';
+                  btn.classList.remove('primary');
+                  btn.classList.add('danger');
+                } else {
+                  btn.textContent = 'Mulai Kamera';
+                  btn.classList.remove('danger');
+                  btn.classList.add('primary');
+                  showPlaceholder();
+                }
+              } catch(e) {}
+            }
 
             function attachStream() {
               usingRawFallback = false;
@@ -100,40 +122,56 @@ def dataset_html():
             }
 
             async function tryStartCamera() {
+              // Start seluruh service (worker + scheduler)
               attachRawFallback();
-              await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'AVFOUNDATION', saveDetections:false})});
-              await new Promise(r => setTimeout(r, 700));
+              await fetch('/machine/start', {method:'GET'});
+              await new Promise(r => setTimeout(r, 900));
               await showCamStatus();
-              let st = await (await fetch('/status')).json();
-              if (!st.camera || st.camera.open !== true) {
-                await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'ANY', saveDetections:false})});
-                await new Promise(r => setTimeout(r, 900));
-                await showCamStatus();
-                st = await (await fetch('/status')).json();
-              }
+              const st = await (await fetch('/status')).json();
               if (st.camera && st.camera.open === true) {
                 attachStream();
               }
+              await updateCamButton(); // update tombol sekali
               refreshDataset();
+            }
+
+            async function stopService() {
+              await fetch('/machine/stop', {method:'GET'});
+              if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
+              showPlaceholder();
+              await showCamStatus();
+              await updateCamButton(); // sekali saja
             }
 
             document.getElementById('startCam').onclick = async () => {
-              await tryStartCamera();
+              const st = await (await fetch('/status')).json();
+              if (st.camera && st.camera.open === true) {
+                await stopService();
+              } else {
+                await tryStartCamera();
+              }
             };
             document.getElementById('showStatus').onclick = async () => {
               await showCamStatus();
+              await updateCamButton();
             };
 
-            async function saveLabel(label) {
-              const r = await fetch('/dataset/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({label})});
+            // Inisialisasi satu kali tanpa polling
+            updateCamButton();
+
+            // Upload & Simpan tetap sama
+            document.getElementById('saveBersih').onclick = async () => {
+              const r = await fetch('/dataset/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({label:'BERSIH'})});
               const j = await r.json();
               alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
               refreshDataset();
-            }
-            document.getElementById('saveBersih').onclick = () => saveLabel('BERSIH');
-            document.getElementById('saveSampah').onclick = () => saveLabel('ADA_SAMPAH');
-
-            // Saat pilih file: tampilkan preview dan kirim buffer ke backend agar tombol Simpan bekerja
+            };
+            document.getElementById('saveSampah').onclick = async () => {
+              const r = await fetch('/dataset/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({label:'ADA_SAMPAH'})});
+              const j = await r.json();
+              alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
+              refreshDataset();
+            };
             document.getElementById('uploadFile').addEventListener('change', async (e) => {
               const file = e.target.files[0];
               if (!file) return;
@@ -145,8 +183,6 @@ def dataset_html():
                 body: file
               });
             });
-
-            // Satu tombol upload dengan label dari select
             document.getElementById('uploadBtn').onclick = async () => {
               const file = document.getElementById('uploadFile').files[0];
               if (!file) { alert('Pilih file dulu'); return; }
@@ -196,8 +232,13 @@ def dataset_add(payload: dict):
     from ml.app.utils import ensure_dir, timestamp_str
 
     label = str(payload.get("label", "")).upper()
-    if label not in {"BERSIH", "ADA_SAMPAH"}:
-        return {"ok": False, "error": "Label harus BERSIH atau ADA_SAMPAH"}
+    # Samakan normalisasi label seperti upload
+    if label in {"CLEAN", "BERSIH"}:
+        norm_label = "BERSIH"
+    elif label in {"TRASH", "ADA SAMPAH", "ADA_SAMPAH", "SAMPAH"}:
+        norm_label = "ADA SAMPAH"
+    else:
+        return {"ok": False, "error": "Label harus BERSIH atau ADA SAMPAH"}
 
     with _state_lock:
         raw_bytes = getattr(svc, "_captured_raw_jpeg", None) or getattr(svc, "_latest_raw_jpeg", None)
@@ -205,9 +246,16 @@ def dataset_add(payload: dict):
     if not raw_bytes:
         return {"ok": False, "error": "Belum ada frame mentah. Ambil gambar, nyalakan kamera, atau pilih file."}
 
-    out_dir = Path("ml/data/labeled") / label
+    from ml.app.service import get_detection_dir
+    out_dir = get_detection_dir()
     ensure_dir(out_dir)
-    fname = f"{label.lower()}_{timestamp_str()}.jpg"
+    # Format nama file diselaraskan dengan upload
+    from datetime import datetime
+    import uuid
+    ts = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+    short_id = uuid.uuid4().hex[:8]
+    safe_label = norm_label.lower().replace(" ", "_")
+    fname = f"{ts.replace(':','').replace('.','').replace('-','')}_{safe_label}_{short_id}.jpg"
     out_path = out_dir / fname
     try:
         with open(out_path, "wb") as f:

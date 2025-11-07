@@ -138,6 +138,12 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
             if rw > 0 and rh > 0 and (rw, rh) != (frame.shape[1], frame.shape[0]):
                 cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (80, 80, 80), 2)
 
+            # Encode RAW frame and store to buffer for dataset capture
+            ok_raw_jpeg, raw_encoded = cv2.imencode(".jpg", raw_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+            if ok_raw_jpeg:
+                ctx.set_latest_raw_jpeg(raw_encoded.tobytes())
+
+            # Overlay + metrics for preview
             ok_jpeg, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
             if ok_jpeg:
                 ctx.set_latest_jpeg(encoded.tobytes())
