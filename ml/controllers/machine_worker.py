@@ -48,19 +48,19 @@ def machine_worker(stop_event: threading.Event, ctx: MachineContext):
                                 knn_label, knn_conf = predict_knn(knn_model, roi_img)
                             except Exception as e:
                                 ctx.logger.error(f"KNN infer error: {e}")
-                # Keputusan label akhir
-                label_norm = "BERSIH"
+                # Keputusan label akhir (selaras dengan stream worker)
+                thr = ctx.get_int("ALERT_THRESHOLD", 12)
+                is_trash = (trash_pct >= thr) or (knn_label == "ADA_SAMPAH")
+
                 if suppressed:
                     label_norm = "BERSIH"
-                elif knn_label is not None:
-                    label_norm = "ADA SAMPAH" if knn_label == "ADA_SAMPAH" else "BERSIH"
                 else:
-                    thr = ctx.get_int("ALERT_THRESHOLD", 12)
-                    label_norm = "ADA SAMPAH" if trash_pct >= thr else "BERSIH"
+                    label_norm = "ADA SAMPAH" if is_trash else "BERSIH"
 
                 save_info = {"ok": False}
                 log_clean = ctx.get_str("SAVE_LOG_BERSIH", "false").lower() in {"1","true","yes","y"}
-                should_save = (label_norm != "BERSIH") or log_clean
+                # Simpan jika tidak suppressed dan (trash OR knn) atau mode log bersih diaktifkan
+                should_save = (not suppressed) and (is_trash or log_clean)
                 if raw_jpeg and should_save:
                     save_info = ctx.save_detection_and_dataset(
                         raw_jpeg, label_norm, knn_conf, trash_pct, (rx, ry, rw, rh)

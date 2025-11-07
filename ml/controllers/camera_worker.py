@@ -132,9 +132,65 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                 except Exception as e:
                     ctx.logger.error(f"KNN infer error: {e}")
 
+            # === Fitur pra-KNN ===
+            hsv_stats = {}
+            lbp59 = []
+            edge_den = 0.0
+            shape_feats = {"area_ratio": 0.0, "solidity": 0.0, "hu7": [0.0]*7}
+            try:
+                from ml.app.image_features import hsv_hist_and_stats_bgr, lbp_uniform_hist, edge_density, contour_features_from_mask
+                hsv_stats = hsv_hist_and_stats_bgr(roi_img) or {}
+                gray_roi = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
+                lbp59 = lbp_uniform_hist(gray_roi) or []
+                edge_den = edge_density(gray_roi)
+                if not suppressed:
+                    shape_feats = contour_features_from_mask(fg)
+            except Exception as e:
+                ctx.logger.warning(f"Pra-KNN feature error: {e}")
+
             is_trash = (trash_pct >= threshold) or (knn_label == "ADA_SAMPAH")
             text = f"Trash {round(trash_pct, 2)}%{' SUP' if suppressed else ''}"
             cv2.putText(frame, text, (margin, margin + 20), font, font_scale, color, thickness, cv2.LINE_AA)
+
+            # Tampilkan hasil KNN (jika ada), khususnya saat mendeteksi sampah
+            if knn_label is not None:
+                knn_text = f"KNN: {'ADA SAMPAH' if knn_label == 'ADA_SAMPAH' else 'BERSIH'}"
+                if knn_conf is not None:
+                    knn_text += f" ({round(knn_conf, 2)})"
+                # posisi tepat di bawah baris Trash
+                cv2.putText(frame, knn_text, (margin, margin + 40), font, font_scale, color, thickness, cv2.LINE_AA)
+
+            # Overlay ringkasan fitur (baris tambahan)
+            y = margin + 46
+            # HSV stats line
+            if hsv_stats:
+                cv2.putText(
+                    frame,
+                    f"HSV hist H32/S16/V8 | H[{round(hsv_stats.get('H_mean',0),1)},{round(hsv_stats.get('H_std',0),1)}] "
+                    f"S[{round(hsv_stats.get('S_mean',0),1)},{round(hsv_stats.get('S_std',0),1)}] "
+                    f"V[{round(hsv_stats.get('V_mean',0),1)},{round(hsv_stats.get('V_std',0),1)}]",
+                    (margin, y), font, 0.6, color, 1, cv2.LINE_AA
+                )
+                y += 22
+                # tampilkan beberapa bin awal untuk tiap histogram agar ringkas
+                h_bins = hsv_stats.get("histH32", [])[:6]
+                s_bins = hsv_stats.get("histS16", [])[:6]
+                v_bins = hsv_stats.get("histV8", [])[:6]
+                cv2.putText(frame, f"H[0:6]={[round(b,3) for b in h_bins]}", (margin, y), font, 0.6, color, 1, cv2.LINE_AA)
+                y += 22
+                cv2.putText(frame, f"S[0:6]={[round(b,3) for b in s_bins]}", (margin, y), font, 0.6, color, 1, cv2.LINE_AA)
+                y += 22
+                cv2.putText(frame, f"V[0:6]={[round(b,3) for b in v_bins]}", (margin, y), font, 0.6, color, 1, cv2.LINE_AA)
+                y += 22
+            # LBP, edge, shape
+            if lbp59:
+                cv2.putText(frame, f"LBP59[0:6]={[round(b,3) for b in lbp59[:6]]}", (margin, y), font, 0.6, color, 1, cv2.LINE_AA)
+                y += 22
+            cv2.putText(frame, f"Edge density={round(edge_den,3)}", (margin, y), font, 0.6, color, 1, cv2.LINE_AA)
+            y += 22
+            cv2.putText(frame, f"Shape area_ratio={round(shape_feats['area_ratio'],3)} solidity={round(shape_feats['solidity'],3)}", (margin, y), font, 0.6, color, 1, cv2.LINE_AA)
+            y += 22
+
             if rw > 0 and rh > 0 and (rw, rh) != (frame.shape[1], frame.shape[0]):
                 cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (80, 80, 80), 2)
 
@@ -155,6 +211,16 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                     "cooldownActive": (time.time() - last_capture_ts) < detect_cooldown_s,
                     "knnLabel": knn_label,
                     "knnConfidence": knn_conf,
+                    # fitur pra-KNN untuk monitoring
+                    "features": {
+                        **(hsv_stats or {}),
+                        "LBP59": lbp59,
+                        "edge_density": round(edge_den, 6),
+                        "area_ratio": round(shape_feats["area_ratio"], 6),
+                        "solidity": round(shape_feats["solidity"], 6),
+                        "hu7": shape_feats["hu7"],
+                        "trashPct": round(trash_pct, 2),
+                    }
                 })
 
             now = time.time()
