@@ -15,6 +15,15 @@ from ml.router.camera_router import camera_router
 from ml.router.dataset_router import dataset_router
 from ml.router.knn_router import knn_router
 from ml.router.machine_router import machine_router
+from ml.controllers.machine_worker import MachineContext, machine_worker as _machine_worker_controller
+
+# Delegation imports
+from ml.app.camera_open import parse_camera_src as _parse_camera_src_impl, open_capture as _open_capture_impl
+from ml.app.image_decode import decode_jpeg_to_bgr as _decode_jpeg_to_bgr_impl
+from ml.app.image_features import extract_features_bgr as _extract_features_bgr_impl
+from ml.app.detection_store import save_detection_and_dataset as _save_detection_and_dataset_impl, get_detection_dir, get_dataset_json, ensure_detection_dirs
+from ml.controllers.frame_capture import FrameCaptureContext, get_raw_frame_jpeg as _get_raw_frame_jpeg_controller
+from ml.controllers.camera_worker import CameraContext, camera_worker as _camera_worker_controller
 
 # module: service.py (deklarasi global)
 app = FastAPI()
@@ -56,156 +65,33 @@ def get_machine_interval_min() -> int:
     return max(1, get_int("MACHINE_INTERVAL_MINUTES", 5))
 
 def _get_raw_frame_jpeg() -> bytes | None:
-    # Coba ambil dari buffer stream yang ada
-    with _state_lock:
-        live = _latest_raw_jpeg
-    if live:
-        return live
-    # Jika buffer kosong, lakukan capture sekali
-    src = parse_camera_src()
-    backend = get_str("CAMERA_BACKEND", "AVFOUNDATION")
-    cap = open_capture(src, backend)
-    if cap is None:
-        return None
-    try:
-        warm_frames = max(10, get_int("CAPTURE_WARM_FRAMES", 15))
-        for _ in range(warm_frames):
-            ok_w, _ = cap.read()
-            if not ok_w:
-                break
-            time.sleep(0.02)
-        ok, frame = cap.read()
-    finally:
-        try:
-            cap.release()
-        except Exception:
-            pass
-    if not ok or frame is None:
-        return None
-    ok_raw, raw_jpeg = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
-    if not ok_raw:
-        return None
-    return raw_jpeg.tobytes()
+    ctx = FrameCaptureContext(
+        state_lock=_state_lock,
+        latest_raw_jpeg_getter=lambda: _latest_raw_jpeg,
+        get_int=get_int,
+        get_str=get_str,
+        logger=logger,
+        camera_status_ref=_camera_status,
+    )
+    return _get_raw_frame_jpeg_controller(ctx)
 
 def _save_detection_and_dataset(raw_bytes: bytes, label_norm: str, knn_conf: float | None, trash_pct: float, roi: tuple[int,int,int,int]) -> dict:
-    ensure_detection_dirs()
-    detect_dir = get_detection_dir()
-    ensure_dir(detect_dir)
-    ts = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
-    short_id = uuid.uuid4().hex[:8]
-    safe_label = label_norm.lower().replace(" ", "_")
-    filename = f"{ts.replace(':','').replace('.','').replace('-','')}_{safe_label}_{short_id}.jpg"
-    out_path = detect_dir / filename
-
-    try:
-        with open(out_path, "wb") as f:
-            f.write(raw_bytes)
-    except Exception as e:
-        logger.error(f"Gagal menyimpan detection file: {e}")
-        return {"ok": False, "error": str(e)}
-
-    # Ekstraksi fitur dan update dataset.json
-    feats = {}
-    try:
-        bgr = decode_jpeg_to_bgr(raw_bytes)
-        if bgr is not None:
-            feats = extract_features_bgr(bgr)
-    except Exception as e:
-        logger.warning(f"Gagal ekstraksi fitur: {e}")
-
-    try:
-        dj = get_dataset_json()
-        items = []
-        if dj.exists():
-            try:
-                items = json.loads(dj.read_text(encoding="utf-8") or "[]")
-            except Exception:
-                items = []
-        entry = {
-            "path": str(out_path),
-            "label": label_norm,
-            "ts": ts,
-            "features": feats,
-            "knnConfidence": knn_conf,
-            "trashPct": round(trash_pct, 2),
-            "roi": {"x": roi[0], "y": roi[1], "w": roi[2], "h": roi[3]},
-        }
-        items.append(entry)
-        dj.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
-        return {"ok": True, "path": str(out_path), "entry": entry}
-    except Exception as e:
-        logger.error(f"Gagal update dataset.json: {e}")
-        return {"ok": False, "error": str(e), "path": str(out_path)}
+    return _save_detection_and_dataset_impl(raw_bytes, label_norm, knn_conf, trash_pct, roi, logger)
 
 def machine_worker(stop_event: threading.Event):
-    # Jalankan deteksi berkala berdasarkan interval .env
-    interval_min = get_machine_interval_min()
-    with _state_lock:
-        _machine_status.update({"running": True, "interval_min": interval_min})
-    try:
-        while not stop_event.is_set():
-            raw_jpeg = _get_raw_frame_jpeg()
-            result = None
-            try:
-                knn_label, knn_conf = None, None
-                trash_pct, suppressed, rx, ry, rw, rh = 0.0, False, 0, 0, 0, 0
-                if raw_jpeg:
-                    bgr = decode_jpeg_to_bgr(raw_jpeg)
-                    if bgr is not None:
-                        m = compute_metrics(bgr)
-                        trash_pct = m["trash_pct"]
-                        suppressed = m["suppressed"]
-                        rx, ry, rw, rh = m["roi"]
-                        # KNN pada ROI jika tersedia
-                        if _knn_model is not None and not suppressed:
-                            try:
-                                roi_img = bgr[ry:ry+rh, rx:rx+rw] if rw > 0 and rh > 0 else bgr
-                                from .knn import predict_knn
-                                knn_label, knn_conf = predict_knn(_knn_model, roi_img)
-                            except Exception as e:
-                                logger.error(f"KNN infer error: {e}")
-                # Keputusan label akhir
-                label_norm = "BERSIH"
-                if suppressed:
-                    label_norm = "BERSIH"
-                elif knn_label is not None:
-                    label_norm = "ADA SAMPAH" if knn_label == "ADA_SAMPAH" else "BERSIH"
-                else:
-                    thr = get_int("ALERT_THRESHOLD", 12)
-                    label_norm = "ADA SAMPAH" if trash_pct >= thr else "BERSIH"
-
-                save_info = {"ok": False}
-                log_clean = get_str("SAVE_LOG_BERSIH", "false").lower() in {"1","true","yes","y"}
-                should_save = (label_norm != "BERSIH") or log_clean
-                if raw_jpeg and should_save:
-                    save_info = _save_detection_and_dataset(raw_jpeg, label_norm, knn_conf, trash_pct, (rx, ry, rw, rh))
-
-                result = {
-                    "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-                    "label": label_norm,
-                    "knnConfidence": knn_conf,
-                    "trashPct": round(trash_pct, 2),
-                    "suppressed": suppressed,
-                    "saved": save_info,
-                }
-            except Exception as e:
-                logger.error(f"Machine run error: {e}")
-                result = {"ok": False, "error": str(e)}
-
-            with _state_lock:
-                _machine_status.update({
-                    "last_run": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-                    "run_count": int(_machine_status.get("run_count", 0)) + 1,
-                    "last_result": result,
-                    "interval_min": interval_min,
-                })
-
-            # Tunggu sesuai interval atau until stop
-            if stop_event.wait(interval_min * 60):
-                break
-    finally:
-        with _state_lock:
-            _machine_status.update({"running": False})
+    ctx = MachineContext(
+        state_lock=_state_lock,
+        machine_status=_machine_status,
+        get_int=get_int,
+        get_str=get_str,
+        get_raw_frame_jpeg=_get_raw_frame_jpeg,
+        save_detection_and_dataset=_save_detection_and_dataset,
+        decode_jpeg_to_bgr=decode_jpeg_to_bgr,
+        compute_metrics=compute_metrics,
+        knn_model_getter=lambda: _knn_model,
+        logger=logger,
+    )
+    return _machine_worker_controller(stop_event, ctx)
 
 def start_machine():
     global _machine_thread, _machine_stop
@@ -238,54 +124,10 @@ BACKENDS = {
 FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
 def parse_camera_src():
-    s = get_str("CAMERA_SRC", "0")
-    try:
-        return int(s)
-    except ValueError:
-        return s
+    return _parse_camera_src_impl()
 
 def open_capture(src, backend_name: str | None):
-    tried = []
-    def try_backend(name: str | None):
-        cap = cv2.VideoCapture(src, BACKENDS.get(name.upper(), cv2.CAP_ANY)) if name else cv2.VideoCapture(src)
-        label = name or "DEFAULT"
-        tried.append(label)
-        if cap is None or not cap.isOpened():
-            try:
-                if cap: cap.release()
-            except Exception:
-                pass
-            return None
-        ok, _ = cap.read()
-        if not ok:
-            try:
-                cap.release()
-            except Exception:
-                pass
-            return None
-        _camera_status.update({"open": True, "src": src, "backend": label, "last_error": None})
-        return cap
-
-    cap = None
-    if backend_name:
-        cap = try_backend(backend_name)
-    if cap is None:
-        for name in ["AVFOUNDATION", "ANY", None]:
-            if backend_name and (name == backend_name or (name is None and backend_name is None)):
-                continue
-            cap = try_backend(name)
-            if cap:
-                break
-
-    if cap is None:
-        _camera_status.update({
-            "open": False,
-            "src": src,
-            "backend": backend_name,
-            "last_error": f"OpenCV gagal membuka kamera. Dicoba: {tried}. Periksa izin kamera & apakah sedang dipakai app lain."
-        })
-        return None
-    return cap
+    return _open_capture_impl(src, backend_name, _camera_status, logger)
 
 def get_roi(frame):
     h, w = frame.shape[:2]
@@ -366,261 +208,38 @@ def ensure_detection_dirs():
 
 
 def decode_jpeg_to_bgr(jpeg_bytes: bytes):
-    try:
-        arr = np.frombuffer(jpeg_bytes, dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        return img
-    except Exception:
-        return None
+    return _decode_jpeg_to_bgr_impl(jpeg_bytes)
 
 
 def extract_features_bgr(img):
-    try:
-        h, w = img.shape[:2]
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
-        # Color histograms (H, S, V), 16 bins each, normalized
-        hist_h = cv2.calcHist([hsv], [0], None, [16], [0, 180]).flatten()
-        hist_s = cv2.calcHist([hsv], [1], None, [16], [0, 256]).flatten()
-        hist_v = cv2.calcHist([hsv], [2], None, [16], [0, 256]).flatten()
-        for hist in (hist_h, hist_s, hist_v):
-            s = float(hist.sum()) or 1.0
-            hist /= s
-
-        # Color statistics
-        h_mean = float(hsv[:, :, 0].mean()); h_std = float(hsv[:, :, 0].std())
-        s_mean = float(hsv[:, :, 1].mean()); s_std = float(hsv[:, :, 1].std())
-        v_mean = float(hsv[:, :, 2].mean()); v_std = float(hsv[:, :, 2].std())
-
-        # Texture: Laplacian variance
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        lap = cv2.Laplacian(gray, cv2.CV_64F)
-        lap_var = float(lap.var())
-
-        # Edge ratio
-        edges = cv2.Canny(img, 100, 200)
-        edge_ratio = float(np.count_nonzero(edges)) / float(h * w) if (h * w) > 0 else 0.0
-
-        # Shape: largest contour area ratio (Otsu threshold)
-        _, thr = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        cnts = cv2.findContours(thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = cnts[0] if len(cnts) == 2 else cnts[1]
-        max_area = float(max((cv2.contourArea(c) for c in contours), default=0.0))
-        shape_area_ratio = (max_area / float(h * w)) if (h * w) > 0 else 0.0
-
-        return {
-            "width": int(w),
-            "height": int(h),
-            "color_hist_h": hist_h.tolist(),
-            "color_hist_s": hist_s.tolist(),
-            "color_hist_v": hist_v.tolist(),
-            "h_mean": h_mean, "h_std": h_std,
-            "s_mean": s_mean, "s_std": s_std,
-            "v_mean": v_mean, "v_std": v_std,
-            "laplacian_var": lap_var,
-            "edge_ratio": edge_ratio,
-            "shape_area_ratio": shape_area_ratio,
-        }
-    except Exception as e:
-        logger.error(f"extract_features_bgr error: {e}")
-        return None
+    return _extract_features_bgr_impl(img)
 
 def camera_worker(stop_event: threading.Event):
-    global _knn_model
-    global _latest_jpeg, _latest_raw_jpeg, _latest_metrics
-    src = parse_camera_src()
-    backend = get_str("CAMERA_BACKEND", "AVFOUNDATION")
-    interval_s = max(1, get_int("SAMPLE_INTERVAL_S", 10))
-    threshold = get_int("ALERT_THRESHOLD", 12)
-    fps = max(1, get_int("STREAM_FPS", 10))
+    def _set_latest_jpeg(b: bytes | None):
+        global _latest_jpeg
+        with _state_lock:
+            _latest_jpeg = b
 
-    detect_cooldown_s = max(1, get_int("DETECT_COOLDOWN_S", 300))
-    detect_save_dir = get_str("DETECT_SAVE_DIR", "ml/data/detections")
+    def _set_latest_raw_jpeg(b: bytes | None):
+        global _latest_raw_jpeg
+        with _state_lock:
+            _latest_raw_jpeg = b
 
-    knn_enabled = get_str("KNN_ENABLED", "true").lower() in {"1", "true", "yes", "y"}
-    knn_model_path = get_str("KNN_MODEL_PATH", "ml/models/knn.joblib")
-    if knn_enabled and _knn_model is None and Path(knn_model_path).exists():
-        try:
-            from .knn import load_knn
-            _knn_model = load_knn(Path(knn_model_path))
-            logger.info(f"KNN model loaded in worker: {knn_model_path}")
-        except Exception as e:
-            logger.error(f"Gagal memuat KNN di worker: {e}")
-    # HAPUS: detections_json = get_str("DETECTIONS_JSON", "ml/logs/detections.json")
+    def _update_metrics(d: dict):
+        with _state_lock:
+            _latest_metrics.update(d)
 
-    cap = None
-    while cap is None and not stop_event.is_set():
-        cap = open_capture(src, backend)
-        if cap is None:
-            _camera_status.update({
-                "open": False,
-                "src": src,
-                "backend": backend,
-                "last_error": f"Gagal membuka kamera: src={src} backend={backend}. Akan retry..."
-            })
-            logger.error(f"Gagal membuka kamera: src={src} backend={backend}. Retry 1s")
-            time.sleep(1.0)
-
-    if stop_event.is_set():
-        return
-
-    cap.set(cv2.CAP_PROP_FPS, fps)
-    # Atur resolusi (bisa diubah via env: STREAM_WIDTH/STREAM_HEIGHT)
-    w = get_int("STREAM_WIDTH", 1280)
-    h = get_int("STREAM_HEIGHT", 720)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-
-    fail_count = 0
-    last_alert_ts = 0.0
-    last_capture_ts = 0.0
-    try:
-        while not stop_event.is_set():
-            ok, frame = cap.read()
-            if not ok or frame is None:
-                fail_count += 1
-                _camera_status.update({"open": False, "src": src, "backend": backend, "last_error": "Frame tidak terbaca"})
-                time.sleep(0.1)
-                if fail_count >= 30:
-                    try:
-                        cap.release()
-                    except Exception:
-                        pass
-                    time.sleep(0.2)
-                    cap = open_capture(src, backend)
-                    if cap is None:
-                        _camera_status.update({"open": False, "src": src, "backend": backend, "last_error": "Re-open kamera gagal"})
-                        time.sleep(0.5)
-                        continue
-                    cap.set(cv2.CAP_PROP_FPS, fps)
-                    # Atur resolusi (bisa diubah via env: STREAM_WIDTH/STREAM_HEIGHT) setelah re-open
-                    w = get_int("STREAM_WIDTH", 1280)
-                    h = get_int("STREAM_HEIGHT", 720)
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-                    fail_count = 0
-                continue
-            else:
-                if fail_count:
-                    fail_count = 0
-                _camera_status.update({"open": True, "src": src, "backend": backend, "last_error": None})
-
-            raw_frame = frame.copy()
-            ok_raw, raw_jpeg = cv2.imencode(".jpg", raw_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
-            if ok_raw:
-                with _state_lock:
-                    _latest_raw_jpeg = raw_jpeg.tobytes()
-
-            m = compute_metrics(frame)
-            trash_pct = m["trash_pct"]
-            suppressed = m["suppressed"]
-            rx, ry, rw, rh = m["roi"]
-
-            knn_label, knn_conf = None, None
-            if _knn_model is not None and not suppressed:
-                try:
-                    roi_img = raw_frame[ry:ry+rh, rx:rx+rw] if rw > 0 and rh > 0 else raw_frame
-                    from .knn import predict_knn
-                    knn_label, knn_conf = predict_knn(_knn_model, roi_img)
-                except Exception as e:
-                    logger.error(f"KNN infer error: {e}")
-
-            is_trash = False
-            if suppressed:
-                is_trash = False
-            elif knn_label is not None:
-                is_trash = (knn_label == "ADA_SAMPAH")
-            else:
-                is_trash = trash_pct >= threshold
-
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 1.0
-            thickness = 2
-            if suppressed:
-                status_text = "Orang terdeteksi — deteksi sampah dinonaktifkan"
-                color = (255, 255, 0)
-            else:
-                if knn_label is not None:
-                    status_text = f"KNN: {knn_label}"
-                    if knn_conf is not None:
-                        status_text += f" ({knn_conf:.2f})"
-                else:
-                    status_text = "Ada sampah tertumpuk" if is_trash else "Kondisi normal"
-                color = (0, 0, 255) if is_trash else (0, 200, 0)
-            text = f"{status_text} • {trash_pct:.2f}%"
-            margin = 12
-            (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, thickness)
-            cv2.rectangle(frame, (margin - 6, margin - 6), (margin + text_w + 6, margin + text_h + 6), (0, 0, 0), -1)
-            cv2.putText(frame, text, (margin, margin + text_h), font, font_scale, color, thickness, cv2.LINE_AA)
-
-            if rw > 0 and rh > 0 and (rw, rh) != (frame.shape[1], frame.shape[0]):
-                cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (80, 80, 80), 2)
-
-            ok_jpeg, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-            if ok_jpeg:
-                with _state_lock:
-                    _latest_jpeg = encoded.tobytes()
-                    _latest_metrics["trashPct"] = round(trash_pct, 2)
-                    _latest_metrics["ts"] = datetime.now().isoformat()
-                    _latest_metrics["faces"] = m["faces"]
-                    _latest_metrics["suppressed"] = suppressed
-                    _latest_metrics["cooldownActive"] = (time.time() - last_capture_ts) < detect_cooldown_s
-                    _latest_metrics["knnLabel"] = knn_label
-                    _latest_metrics["knnConfidence"] = knn_conf
-
-            now = time.time()
-            can_capture = (now - last_capture_ts) >= detect_cooldown_s
-            if _save_detections and is_trash and not suppressed and can_capture:
-                ensure_dir(Path(detect_save_dir))
-                out_path = Path(detect_save_dir) / f"trash_{timestamp_str()}.jpg"
-                ok_save = cv2.imwrite(str(out_path), raw_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
-                if ok_save:
-                    last_capture_ts = now
-
-                # Ganti penulisan JSON dengan logging biasa
-                logger.info(
-                    f"DETECTED: label={(knn_label if knn_label is not None else ('ADA_SAMPAH' if is_trash else 'BERSIH'))} "
-                    f"trashPct={round(trash_pct, 2)} suppressed={suppressed} "
-                    f"roi=({rx},{ry},{rw},{rh}) saved={'yes' if ok_save else 'no'} "
-                    f"path={out_path if ok_save else None}"
-                )
-                try:
-                    ensure_dir(Path(detections_json).parent)
-                    event = {
-                        "ts": datetime.now().isoformat(),
-                        "label": knn_label if knn_label is not None else ("ADA_SAMPAH" if is_trash else "BERSIH"),
-                        "knnConfidence": knn_conf,
-                        "trashPct": round(trash_pct, 2),
-                        "suppressed": suppressed,
-                        "roi": {"x": rx, "y": ry, "w": rw, "h": rh},
-                        "imagePath": str(out_path) if ok_save else None,
-                    }
-                    if Path(detections_json).exists():
-                        try:
-                            data = json.loads(Path(detections_json).read_text())
-                            if not isinstance(data, list):
-                                data = []
-                        except Exception:
-                            data = []
-                    else:
-                        data = []
-                    data.append(event)
-                    Path(detections_json).write_text(json.dumps(data, indent=2))
-                    logger.info(f"DETECTED(JSON): {event}")
-                except Exception as e:
-                    logger.error(f"Gagal menulis JSON: {e}")
-
-            if is_trash and not suppressed and (now - last_alert_ts) >= interval_s:
-                last_alert_ts = now
-
-            time.sleep(1.0 / fps)
-    finally:
-        try:
-            if cap:
-                cap.release()
-        except Exception:
-            pass
-        logger.info("Camera worker stopped")
+    ctx = CameraContext(
+        state_lock=_state_lock,
+        camera_status=_camera_status,
+        set_latest_jpeg=_set_latest_jpeg,
+        set_latest_raw_jpeg=_set_latest_raw_jpeg,
+        update_metrics=_update_metrics,
+        save_detections_getter=lambda: _save_detections,
+        knn_model_getter=lambda: _knn_model,
+        logger=logger,
+    )
+    return _camera_worker_controller(stop_event, ctx)
 
 def start_worker():
     global _worker_thread, _worker_stop
@@ -769,52 +388,6 @@ def stream():
         headers=headers,
     )
 
-@app.get("/stream/html")
-def stream_html():
-    return HTMLResponse(
-        """
-        <!doctype html><html><head><meta charset="utf-8"><title>ML Stream</title>
-          <style>
-            body{margin:0;background:#111;height:100vh;color:#ddd;font-family:system-ui}
-            .wrap{display:flex;align-items:center;justify-content:center;height:80vh}
-            img{max-width:96vw;max-height:70vh;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-            .toolbar{display:flex;gap:8px;align-items:center;justify-content:center;padding:10px}
-            button{background:#444;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
-            button.primary{background:#0a7}
-            button.danger{background:#c33}
-            .badge{position:fixed;top:14px;left:14px;background:#222;color:#ddd;padding:6px 10px;border-radius:6px}
-            .note{font-size:12px;color:#aaa;text-align:center;margin-top:6px}
-          </style>
-        </head>
-        <body>
-          <div class="badge">Stream Kamera</div>
-          <div class="wrap"><img id="img" src="/stream" /></div>
-          <div class="toolbar">
-            <button id="startCam" class="primary">Mulai Kamera</button>
-            <span id="dsInfo"></span>
-          </div>
-          <div class="note">Halaman melihat stream langsung.</div>
-          <script>
-            const dsInfo = document.getElementById('dsInfo');
-            async function refreshStatus(){
-              const st = await (await fetch('/status')).json();
-              dsInfo.textContent = `Camera open=${st.camera.open} backend=${st.camera.backend || '-'} error=${st.camera.last_error || '-'}`;
-            }
-            refreshStatus();
-            document.getElementById('startCam').onclick = async () => {
-              await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'AVFOUNDATION'})});
-              setTimeout(async () => {
-                const st = await (await fetch('/status')).json();
-                if (!st.camera.open) {
-                  await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'ANY'})});
-                }
-                refreshStatus();
-              }, 600);
-            };
-          </script>
-        </body></html>
-        """
-    )
 
 # Capture-based dataset flow
 # Tangkap satu gambar dari kamera (on-demand, tanpa stream)
@@ -879,164 +452,6 @@ def camera_stop():
         time.sleep(0.3)
     return {"ok": True}
 
-@app.get("/dataset")
-def dataset_html():
-    return HTMLResponse(
-        """
-        <!doctype html><html><head><meta charset="utf-8"><title>Dataset Latih</title>
-          <style>
-            body{margin:0;background:#111;color:#ddd;font-family:system-ui}
-            .wrap{display:flex;align-items:center;justify-content:center;height:72vh}
-            img{max-width:96vw;max-height:66vh;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-            .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;padding:12px;flex-wrap:wrap}
-            button{background:#444;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
-            button.primary{background:#0a7}
-            button.danger{background:#c33}
-            .badge{position:fixed;top:14px;left:14px;background:#222;color:#ddd;padding:6px 10px;border-radius:6px}
-            .note{font-size:12px;color:#aaa;text-align:center;margin-top:6px}
-            input[type=file]{color:#ddd}
-          </style>
-        </head>
-        <body>
-          <div class="badge">Dataset Latih</div>
-          <div class="wrap">
-            <div id="placeholder" style="width:85vw;height:60vh;background:#000;display:flex;align-items:center;justify-content:center;color:#ddd;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)">Belum ada gambar. Tekan Ambil Gambar atau Stay Cam.</div>
-            <img id="img" style="display:none" alt="capture" />
-          </div>
-          <div class="toolbar">
-            <button id="btnStayCam">Stay Cam</button>
-            <button id="btnStopCam">Stop Cam</button>
-            <button id="btnCapture" class="primary">Ambil Gambar</button>
-            <button id="btnReset">Reset</button>
-            <button id="saveBersih">Simpan BERSIH</button>
-            <button id="saveSampah" class="danger">Simpan ADA SAMPAH</button>
-            <div style="margin-top:12px;">
-              <input type="file" id="fileInput" accept="image/*" />
-              <button id="uploadBersih">Upload BERSIH</button>
-              <button id="uploadSampah" class="danger">Upload ADA SAMPAH</button>
-            </div>
-            <span id="dsInfo"></span>
-          </div>
-          <div class="note">Gunakan Stay Cam agar kamera siap (eksposur stabil), lalu Ambil Gambar. Simpan jika sudah sesuai, atau unggah file yang sudah ada.</div>
-          <script>
-            const dsInfo = document.getElementById('dsInfo');
-            const img = document.getElementById('img');
-            const placeholder = document.getElementById('placeholder');
-
-            function showImage() {
-              img.style.display = '';
-              placeholder.style.display = 'none';
-            }
-            function showPlaceholder() {
-              img.style.display = 'none';
-              placeholder.style.display = '';
-            }
-
-            async function refreshDataset() {
-              const s = await (await fetch('/dataset/status')).json();
-              const k = await (await fetch('/knn/status')).json();
-              dsInfo.textContent = `Dataset: BERSIH=${s.BERSIH} • ADA_SAMPAH=${s.ADA_SAMPAH} • KNN loaded=${k.loaded}`;
-            }
-            refreshDataset();
-
-            let usingRawFallback = false;
-            let rawTimer = null;
-
-            function attachStream() {
-              usingRawFallback = false;
-              if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
-              img.src = '/stream?ts=' + Date.now();
-              showImage();
-            }
-
-            function attachRawFallback() {
-              if (usingRawFallback) return;
-              usingRawFallback = true;
-              img.src = '/frame/raw?ts=' + Date.now();
-              showImage();
-              if (rawTimer) clearInterval(rawTimer);
-              rawTimer = setInterval(() => {
-                img.src = '/frame/raw?ts=' + Date.now();
-              }, 250);
-            }
-
-            document.getElementById('btnStayCam').onclick = async () => {
-              await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({src:'0', backend:'AVFOUNDATION', saveDetections:false})});
-              await new Promise(r => setTimeout(r, 500));
-              attachStream();
-            };
-
-            document.getElementById('btnStopCam').onclick = async () => {
-              await fetch('/camera/stop', {method:'POST'});
-              if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
-              showPlaceholder();
-            };
-
-            document.getElementById('btnCapture').onclick = async () => {
-              let r = await fetch('/capture', {method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({backend:'AVFOUNDATION'})});
-              let j = await r.json();
-              if (!j.ok) {
-                r = await fetch('/capture', {method:'POST', headers:{'Content-Type':'application/json'},
-                  body: JSON.stringify({backend:'ANY'})});
-                j = await r.json();
-              }
-              if (!j.ok) {
-                alert('Gagal ambil gambar: ' + (j.error || 'unknown'));
-                return;
-              }
-              img.src = '/capture/image?ts=' + Date.now();
-              showImage();
-            };
-
-            document.getElementById('btnReset').onclick = async () => {
-              await fetch('/capture/reset', {method:'POST'});
-              showPlaceholder();
-            };
-
-            async function saveLabel(label) {
-              const r = await fetch('/dataset/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({label})});
-              const j = await r.json();
-              alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
-              refreshDataset();
-            }
-            document.getElementById('saveBersih').onclick = () => saveLabel('BERSIH');
-            document.getElementById('saveSampah').onclick = () => saveLabel('ADA_SAMPAH');
-
-            async function uploadFiles(label) {
-              const fi = document.getElementById('fileInput');
-              if (!fi.files || fi.files.length === 0) {
-                alert('Pilih file gambar terlebih dahulu');
-                return;
-              }
-              const file = fi.files[0];
-              try {
-                const r = await fetch('/dataset/upload?label=' + encodeURIComponent(label), {
-                  method: 'POST',
-                  headers: { 'Content-Type': file.type || 'application/octet-stream' },
-                  body: file
-                });
-                const j = await r.json();
-                alert(j.ok ? `Upload tersimpan: ${j.file || j.path}` : `Gagal: ${j.error || 'unknown'}`);
-                refreshDataset();
-              } catch (e) {
-                alert('Upload error: ' + e);
-              }
-            }
-            document.getElementById('uploadBersih').onclick = () => uploadFiles('BERSIH');
-            document.getElementById('uploadSampah').onclick = () => uploadFiles('ADA SAMPAH');
-            document.getElementById('fileInput').addEventListener('change', (e) => {
-              const file = e.target.files && e.target.files[0];
-              if (file) {
-                img.src = URL.createObjectURL(file);
-                showImage();
-              }
-            });
-          </script>
-        </body></html>
-        """
-    )
 
 @app.get("/dataset/status")
 def dataset_status():
