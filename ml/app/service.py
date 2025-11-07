@@ -259,15 +259,24 @@ def stop_worker():
 
 @app.on_event("startup")
 def on_startup():
+    # Pastikan deklarasi global muncul sebelum assignment apa pun di fungsi ini
+    global _knn_model
+
     logger.info("Startup: kamera tidak dibuka otomatis. Gunakan tombol Mulai Kamera.")
     try:
         if get_str("KNN_ENABLED", "true").lower() in {"1","true","yes","y"}:
             p = Path(get_str("KNN_MODEL_PATH", "ml/models/knn.joblib"))
-            if p.exists():
+            # Cek dataset; hanya load model jika dataset siap dan file model ada
+            counts = dataset_counts()
+            total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0))
+            if total > 0 and p.exists():
                 from .knn import load_knn
-                global _knn_model
                 _knn_model = load_knn(p)
-                logger.info(f"Startup: KNN model loaded {p}")
+                logger.info(f"Startup: KNN model loaded {p} (dataset total={total})")
+            else:
+                # Pastikan KNN nonaktif jika dataset kosong atau model tidak ada
+                _knn_model = None
+                logger.info(f"Startup: KNN not loaded (dataset total={total}, model exists={p.exists()})")
         # Muat dataset referensi untuk similarity
         ref = load_reference_dataset(Path("ml/data/dataset.json"))
         logger.info(f"Startup: reference dataset load status={ref.get('ok')} count={ref.get('count')}")
@@ -384,20 +393,21 @@ def dataset_counts():
     dj = get_dataset_json()
     try:
         if not dj.exists():
-            return {"BERSIH": 0, "ADA_SAMPAH": 0, "TOTAL": 0}
+            return {"BERSIH": 0, "ADA_SAMPAH": 0, "SAMPAH_MENUMPUK": 0, "TOTAL": 0}
         data = json.loads(dj.read_text(encoding="utf-8"))
         if not isinstance(data, list):
-            return {"BERSIH": 0, "ADA_SAMPAH": 0, "TOTAL": 0}
+            return {"BERSIH": 0, "ADA_SAMPAH": 0, "SAMPAH_MENUMPUK": 0, "TOTAL": 0}
         bersih = sum(1 for x in data if str(x.get("label", "")).strip().upper() == "BERSIH")
-        sampah = sum(1 for x in data if str(x.get("label", "")).strip().upper() in {"ADA SAMPAH", "ADA_SAMPAH"})
-        return {"BERSIH": bersih, "ADA_SAMPAH": sampah, "TOTAL": bersih + sampah}
+        ada = sum(1 for x in data if str(x.get("label", "")).strip().upper() in {"ADA SAMPAH", "ADA_SAMPAH"})
+        menumpuk = sum(1 for x in data if str(x.get("label", "")).strip().upper() in {"SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"})
+        return {"BERSIH": bersih, "ADA_SAMPAH": ada, "SAMPAH_MENUMPUK": menumpuk, "TOTAL": bersih + ada + menumpuk}
     except Exception as e:
         logger.error(f"dataset_counts error: {e}")
-        return {"BERSIH": 0, "ADA_SAMPAH": 0, "TOTAL": 0}
+        return {"BERSIH": 0, "ADA_SAMPAH": 0, "SAMPAH_MENUMPUK": 0, "TOTAL": 0}
 
 def dataset_ready() -> bool:
     c = dataset_counts()
-    return c.get("TOTAL", c.get("BERSIH", 0) + c.get("ADA_SAMPAH", 0)) > 0
+    return c.get("TOTAL", c.get("BERSIH", 0) + c.get("ADA_SAMPAH", 0) + c.get("SAMPAH_MENUMPUK", 0)) > 0
 
 @app.get("/diag/camera")
 def diag_camera(src: str | None = None):

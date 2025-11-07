@@ -36,10 +36,12 @@ def dataset_html():
             <button id="showStatus">Status Kamera</button>
             <button id="saveBersih">Simpan BERSIH</button>
             <button id="saveSampah" class="danger">Simpan ADA SAMPAH</button>
+            <button id="saveMenumpuk" class="danger">Simpan SAMPAH MENUMPUK</button>
             <input type="file" id="uploadFile" accept="image/*" />
             <select id="uploadLabel">
               <option value="BERSIH">BERSIH</option>
               <option value="ADA SAMPAH">ADA SAMPAH</option>
+              <option value="SAMPAH MENUMPUK">SAMPAH MENUMPUK</option>
             </select>
             <button id="uploadBtn">Upload</button>
             <span id="dsInfo"></span>
@@ -63,7 +65,7 @@ def dataset_html():
 
             async function refreshDataset() {
               const s = await (await fetch('/dataset/status')).json();
-              dsInfo.textContent = `Dataset: BERSIH=${s.BERSIH} • ADA_SAMPAH=${s.ADA_SAMPAH}`;
+              dsInfo.textContent = `Dataset: BERSIH=${s.BERSIH} • ADA_SAMPAH=${s.ADA_SAMPAH} • SAMPAH_MENUMPUK=${s.SAMPAH_MENUMPUK}`;
             }
             refreshDataset();
 
@@ -124,6 +126,12 @@ def dataset_html():
             };
             document.getElementById('saveSampah').onclick = async () => {
               const r = await fetch('/dataset/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({label:'ADA_SAMPAH'})});
+              const j = await r.json();
+              alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
+              refreshDataset();
+            };
+            document.getElementById('saveMenumpuk').onclick = async () => {
+              const r = await fetch('/dataset/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({label:'SAMPAH MENUMPUK'})});
               const j = await r.json();
               alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
               refreshDataset();
@@ -203,8 +211,10 @@ def dataset_add(payload: dict):
         norm_label = "BERSIH"
     elif label in {"TRASH", "ADA SAMPAH", "ADA_SAMPAH", "SAMPAH"}:
         norm_label = "ADA SAMPAH"
+    elif label in {"SAMPAH MENUMPUK", "SAMPAH_MENUMPUK", "MENUMPUK"}:
+        norm_label = "SAMPAH MENUMPUK"
     else:
-        return {"ok": False, "error": "Label harus BERSIH atau ADA SAMPAH"}
+        return {"ok": False, "error": "Label harus BERSIH, ADA SAMPAH, atau SAMPAH MENUMPUK"}
 
     with _state_lock:
         raw_bytes = getattr(svc, "_captured_raw_jpeg", None) or getattr(svc, "_latest_raw_jpeg", None)
@@ -303,6 +313,8 @@ async def dataset_upload(request: Request, label: str = ""):
         norm_label = "BERSIH"
     elif raw_label in {"TRASH", "ADA SAMPAH", "ADA_SAMPAH", "SAMPAH"}:
         norm_label = "ADA SAMPAH"
+    elif raw_label in {"SAMPAH MENUMPUK", "SAMPAH_MENUMPUK", "MENUMPUK"}:
+        norm_label = "SAMPAH MENUMPUK"
     else:
         return {"ok": False, "error": "Label harus BERSIH atau ADA SAMPAH"}
 

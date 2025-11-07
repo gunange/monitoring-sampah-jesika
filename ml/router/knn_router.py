@@ -17,20 +17,22 @@ def knn_status():
 def knn_train(payload: dict):
     from pathlib import Path
     from ml.app.config import get_str, get_int
-    from ml.app.service import _state_lock, _knn_model, dataset_counts, get_dataset_json
+    # Ganti cara impor agar assignment ke variabel modul bekerja
+    from ml.app import service as service
     from ml.app.knn import train_knn_from_dataset_json, load_knn
     neighbors = int(payload.get("neighbors", get_int("KNN_NEIGHBORS", 5)))
     out_path = Path(payload.get("out", get_str("KNN_MODEL_PATH", "ml/models/knn.joblib")))
-    dataset_path = get_dataset_json()
-    counts = dataset_counts()
+    dataset_path = service.get_dataset_json()
+    counts = service.dataset_counts()
     total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0))
     if total == 0:
         return {"ok": False, "error": "Dataset kosong. Tambah data latih dulu via /dataset."}
     try:
         out = train_knn_from_dataset_json(dataset_path=dataset_path, out_path=out_path, n_neighbors=neighbors)
         model = load_knn(out)
-        with _state_lock:
-            _knn_model = model
+        # Tulis ke atribut modul service, bukan ke nama lokal
+        with service._state_lock:
+            service._knn_model = model
         return {"ok": True, "modelPath": str(out), "neighbors": neighbors, "dataset": counts}
     except Exception as e:
         return {"ok": False, "error": f"Gagal training: {e}"}
@@ -40,7 +42,8 @@ def knn_reload():
     # Lazy import untuk hindari circular import
     from pathlib import Path
     from ml.app.config import get_str
-    from ml.app.service import _state_lock, _knn_model
+    # Ganti ke modul service
+    from ml.app import service as service
     from ml.app.knn import load_knn
 
     try:
@@ -48,8 +51,8 @@ def knn_reload():
         if not p.exists():
             return {"ok": False, "error": f"Model tidak ditemukan: {p}"}
         model = load_knn(p)
-        with _state_lock:
-            _knn_model = model
+        with service._state_lock:
+            service._knn_model = model
         return {"ok": True, "modelPath": str(p)}
     except Exception as e:
         return {"ok": False, "error": f"Gagal reload: {e}"}

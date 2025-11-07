@@ -56,11 +56,16 @@ def machine_worker(stop_event: threading.Event, ctx: MachineContext):
                 positive_labels = {"ADA_SAMPAH", "ADA SAMPAH", "SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}
                 is_trash = (knn_label in positive_labels) and (not suppressed)
 
-                # Normalisasi label untuk penyimpanan dataset (tetap "ADA SAMPAH" demi kompatibilitas)
+                # Normalisasi label untuk penyimpanan dataset (3 kelas)
                 if suppressed:
                     label_norm = "BERSIH"
                 else:
-                    label_norm = "ADA SAMPAH" if is_trash else "BERSIH"
+                    if knn_label in {"SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}:
+                        label_norm = "SAMPAH MENUMPUK"
+                    elif knn_label in {"ADA SAMPAH", "ADA_SAMPAH"}:
+                        label_norm = "ADA SAMPAH"
+                    else:
+                        label_norm = "BERSIH"
 
                 save_info = {"ok": False}
                 log_clean = ctx.get_str("SAVE_LOG_BERSIH", "false").lower() in {"1","true","yes","y"}

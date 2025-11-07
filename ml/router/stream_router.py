@@ -75,7 +75,7 @@ def stream_html():
               const st = await (await fetch('/status')).json();
               const k = await (await fetch('/knn/status')).json();
               const ds = await (await fetch('/dataset/status')).json();
-              dsInfo.textContent = `Camera open=${st.camera.open} • KNN loaded=${k.loaded} • Dataset: BERSIH=${ds.BERSIH} ADA_SAMPAH=${ds.ADA_SAMPAH}`;
+              dsInfo.textContent = `Camera open=${st.camera.open} • KNN loaded=${k.loaded} • Dataset: BERSIH=${ds.BERSIH} ADA_SAMPAH=${ds.ADA_SAMPAH} MENUMPUK=${ds.SAMPAH_MENUMPUK}`;
             }
             refreshStatus();
             document.getElementById('startCam').onclick = async () => {

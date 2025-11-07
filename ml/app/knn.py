@@ -8,9 +8,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 import joblib
 from typing import Iterable, Tuple
+from .config import get_int  # baca env untuk KNN_NEIGHBORS
 
 # kelas/fungsi terkait
-LABEL_MAP = {"BERSIH": 0, "ADA_SAMPAH": 1}
+# Top-level constants
+LABEL_MAP = {"BERSIH": 0, "ADA_SAMPAH": 1, "SAMPAH_MENUMPUK": 2}
 INV_LABEL_MAP = {v: k for k, v in LABEL_MAP.items()}
 
 def extract_features(img_bgr: np.ndarray) -> np.ndarray:
@@ -76,7 +78,7 @@ def _vector_from_features_dict(fd: dict) -> np.ndarray | None:
 def train_knn(
     labeled_root: Path = Path("ml/data/labeled"),
     out_path: Path = Path("ml/models/knn.joblib"),
-    n_neighbors: int = 5,
+    n_neighbors: int | None = None,
 ) -> Path:
     X, y = [], []
     for img_path, lbl in iter_labeled_images(labeled_root):
@@ -87,11 +89,11 @@ def train_knn(
         y.append(lbl)
 
     if not X:
-        raise RuntimeError(f"Tidak ada data di {labeled_root}. Siapkan folder BERSIH/ADA_SAMPAH terlebih dahulu.")
-
+        raise RuntimeError(f"Tidak ada data di {labeled_root}. Siapkan folder BERSIH/ADA_SAMPAH/SAMPAH_MENUMPUK terlebih dahulu.")
+    # Ambil K dari .env jika tidak diberikan
+    n_neighbors = int(n_neighbors if n_neighbors is not None else get_int("KNN_NEIGHBORS", 5))
     X = np.asarray(X, dtype=np.float32)
     y = np.asarray(y, dtype=np.int32)
-
     model = Pipeline([
         ("scaler", StandardScaler()),
         ("knn", KNeighborsClassifier(n_neighbors=n_neighbors, weights="distance")),
@@ -105,7 +107,7 @@ def train_knn(
 def train_knn_from_dataset_json(
     dataset_path: Path = Path("ml/data/dataset.json"),
     out_path: Path = Path("ml/models/knn.joblib"),
-    n_neighbors: int = 5,
+    n_neighbors: int | None = None,
 ) -> Path:
     import json, numpy as np
     from sklearn.pipeline import Pipeline
@@ -130,10 +132,10 @@ def train_knn_from_dataset_json(
 
     if not X:
         raise RuntimeError("Dataset kosong/tidak valid di ml/data/dataset.json")
-
+    # Ambil K dari .env jika tidak diberikan
+    n_neighbors = int(n_neighbors if n_neighbors is not None else get_int("KNN_NEIGHBORS", 5))
     X = np.asarray(X, dtype=np.float32)
     y = np.asarray(y, dtype=np.int32)
-
     model = Pipeline([
         ("scaler", StandardScaler()),
         ("knn", KNeighborsClassifier(n_neighbors=n_neighbors, weights="distance")),
@@ -174,9 +176,8 @@ def build_dataset_json(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="KNN tools: train model atau ekspor dataset JSON.")
     sub = parser.add_subparsers(dest="cmd", required=True)
-
     p_train = sub.add_parser("train", help="Latih KNN dari ml/data/labeled")
-    p_train.add_argument("--neighbors", type=int, default=5)
+    p_train.add_argument("--neighbors", type=int, default=get_int("KNN_NEIGHBORS", 5))
     p_train.add_argument("--out", type=Path, default=Path("ml/models/knn.joblib"))
     p_train.add_argument("--root", type=Path, default=Path("ml/data/labeled"))
 

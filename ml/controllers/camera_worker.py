@@ -173,12 +173,18 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
             text = f"Trash {round(trash_pct, 2)}%{' SUP' if suppressed else ''}"
             cv2.putText(frame, text, (margin, margin + 20), font, font_scale, color, thickness, cv2.LINE_AA)
 
-            # Tampilkan KNN hanya bila tidak suppressed (ganti teks ke SAMPAH MENUMPUK)
+            # Tampilkan KNN sesuai label (Python, bukan JS)
             if not suppressed and knn_label:
-                if knn_label in positive_labels:
-                    cv2.putText(frame, f"KNN: SAMPAH MENUMPUK ({round(knn_conf, 2)})", (margin, margin + 40), font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
+                if knn_label in {"SAMPAH_MENUMPUK", "SAMPAH MENUMPUK"}:
+                    label_text = f"KNN: SAMPAH MENUMPUK ({round(knn_conf, 2)})"
+                    label_color = (0, 0, 255)
+                elif knn_label in {"ADA_SAMPAH", "ADA SAMPAH"}:
+                    label_text = f"KNN: ADA SAMPAH ({round(knn_conf, 2)})"
+                    label_color = (0, 128, 255)
                 else:
-                    cv2.putText(frame, f"KNN: BERSIH ({round(knn_conf, 2)})", (margin, margin + 40), font, font_scale, (0, 255, 0), thickness, cv2.LINE_AA)
+                    label_text = f"KNN: BERSIH ({round(knn_conf, 2)})"
+                    label_color = (0, 255, 0)
+                cv2.putText(frame, label_text, (margin, margin + 40), font, font_scale, label_color, thickness, cv2.LINE_AA)
 
             # Tampilkan Similarity sebagai INFO saja (tidak mempengaruhi keputusan)
             if not suppressed and sim_label:
@@ -260,7 +266,12 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                 if ok_save:
                     last_capture_ts = now
                 # Normalisasi label untuk penyimpanan/dataset agar kompatibel
-                det_label = "ADA_SAMPAH" if (knn_label in positive_labels or (knn_label is None and is_trash)) else "BERSIH"
+                det_label = "BERSIH"
+                if knn_label in {"SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}:
+                    det_label = "SAMPAH MENUMPUK"
+                elif knn_label in {"ADA SAMPAH", "ADA_SAMPAH"} or (knn_label is None and is_trash):
+                    det_label = "ADA SAMPAH"
+                # log, simpan file, dll.
                 ctx.logger.info(
                     f"DETECTED: label={det_label} "
                     f"trashPct={round(trash_pct, 2)} suppressed={suppressed} "
