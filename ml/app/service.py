@@ -236,6 +236,7 @@ def extract_features_bgr(img):
 
 def camera_worker(stop_event: threading.Event):
     global _knn_model
+    global _latest_jpeg, _latest_raw_jpeg, _latest_metrics
     src = parse_camera_src()
     backend = get_str("CAMERA_BACKEND", "AVFOUNDATION")
     interval_s = max(1, get_int("SAMPLE_INTERVAL_S", 10))
@@ -273,6 +274,11 @@ def camera_worker(stop_event: threading.Event):
         return
 
     cap.set(cv2.CAP_PROP_FPS, fps)
+    # Atur resolusi (bisa diubah via env: STREAM_WIDTH/STREAM_HEIGHT)
+    w = get_int("STREAM_WIDTH", 1280)
+    h = get_int("STREAM_HEIGHT", 720)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
 
     fail_count = 0
     last_alert_ts = 0.0
@@ -296,6 +302,11 @@ def camera_worker(stop_event: threading.Event):
                         time.sleep(0.5)
                         continue
                     cap.set(cv2.CAP_PROP_FPS, fps)
+                    # Atur resolusi (bisa diubah via env: STREAM_WIDTH/STREAM_HEIGHT) setelah re-open
+                    w = get_int("STREAM_WIDTH", 1280)
+                    h = get_int("STREAM_HEIGHT", 720)
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
                     fail_count = 0
                 continue
             else:
