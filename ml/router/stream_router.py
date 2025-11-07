@@ -89,7 +89,8 @@ def stream_html():
               }, 600);
             };
             document.getElementById('trainKnn').onclick = async () => {
-              const r = await fetch('/knn/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+              // Ubah: panggil GET tanpa body
+              const r = await fetch('/knn/train');
               const j = await r.json();
               alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
               refreshStatus();

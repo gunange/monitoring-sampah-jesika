@@ -13,27 +13,27 @@ def knn_status():
         "modelPath": get_str("KNN_MODEL_PATH", "ml/models/knn.joblib"),
     }
 
-@knn_router.post("/knn/train")
-def knn_train(payload: dict):
+@knn_router.get("/knn/train")
+def knn_train(neighbors: int | None = None, out: str | None = None):
     from pathlib import Path
     from ml.app.config import get_str, get_int
     # Ganti cara impor agar assignment ke variabel modul bekerja
     from ml.app import service as service
     from ml.app.knn import train_knn_from_dataset_json, load_knn
-    neighbors = int(payload.get("neighbors", get_int("KNN_NEIGHBORS", 5)))
-    out_path = Path(payload.get("out", get_str("KNN_MODEL_PATH", "ml/models/knn.joblib")))
+    n_neighbors = int(neighbors if neighbors is not None else get_int("KNN_NEIGHBORS", 5))
+    out_path = Path(out or get_str("KNN_MODEL_PATH", "ml/models/knn.joblib"))
     dataset_path = service.get_dataset_json()
     counts = service.dataset_counts()
-    total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0))
+    total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0) + counts.get("SAMPAH_MENUMPUK", 0))
     if total == 0:
         return {"ok": False, "error": "Dataset kosong. Tambah data latih dulu via /dataset."}
     try:
-        out = train_knn_from_dataset_json(dataset_path=dataset_path, out_path=out_path, n_neighbors=neighbors)
-        model = load_knn(out)
+        out_file = train_knn_from_dataset_json(dataset_path=dataset_path, out_path=out_path, n_neighbors=n_neighbors)
+        model = load_knn(out_file)
         # Tulis ke atribut modul service, bukan ke nama lokal
         with service._state_lock:
             service._knn_model = model
-        return {"ok": True, "modelPath": str(out), "neighbors": neighbors, "dataset": counts}
+        return {"ok": True, "modelPath": str(out_file), "neighbors": n_neighbors, "dataset": counts}
     except Exception as e:
         return {"ok": False, "error": f"Gagal training: {e}"}
 
@@ -48,6 +48,11 @@ def knn_reload():
 
     try:
         p = Path(get_str("KNN_MODEL_PATH", "ml/models/knn.joblib"))
+        # Tambahkan guard: dataset harus siap
+        counts = service.dataset_counts()
+        total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0) + counts.get("SAMPAH_MENUMPUK", 0))
+        if total <= 0:
+            return {"ok": False, "error": "Dataset kosong. Tidak bisa reload model."}
         if not p.exists():
             return {"ok": False, "error": f"Model tidak ditemukan: {p}"}
         model = load_knn(p)

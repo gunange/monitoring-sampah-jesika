@@ -161,10 +161,11 @@ def dataset_html():
               refreshDataset();
             };
             // Guard: jika suatu saat tombol Train KNN ditambahkan
+            # ... di dalam template HTML (guard tombol Train KNN), ubah fetch ke GET
             const trainBtn = document.getElementById('trainKnn');
             if (trainBtn) {
               trainBtn.onclick = async () => {
-                const r = await fetch('/knn/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                const r = await fetch('/knn/train'); // GET
                 const j = await r.json();
                 alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
                 refreshDataset();

@@ -31,6 +31,8 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
     detect_save_dir = get_str("DETECT_SAVE_DIR", "ml/data/detections")
 
     knn_enabled = get_str("KNN_ENABLED", "true").lower() in {"1", "true", "yes", "y"}
+    # gunakan model KNN dari service; JANGAN load langsung dari file
+    knn_model_getter = ctx.knn_model_getter
     knn_model_path = get_str("KNN_MODEL_PATH", "ml/models/knn.joblib")
     knn_model = None
     if knn_enabled and knn_model is None and Path(knn_model_path).exists():
@@ -128,12 +130,14 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
             knn_label, knn_conf = None, 0.0
 
             # KNN hanya saat tidak suppressed
-            if knn_enabled and knn_model is not None and not suppressed:
-                try:
-                    from ml.app.knn import predict_knn
-                    knn_label, knn_conf = predict_knn(knn_model, roi_img)
-                except Exception as e:
-                    ctx.logger.error(f"KNN infer error: {e}")
+            if knn_enabled and not suppressed:
+                knn_model = knn_model_getter()
+                if knn_model is not None:
+                    try:
+                        from ml.app.knn import predict_knn
+                        knn_label, knn_conf = predict_knn(knn_model, roi_img)
+                    except Exception as e:
+                        ctx.logger.error(f"KNN infer error: {e}")
 
             # === Fitur pra-KNN (definisikan sebelum dipakai di overlay) ===
             hsv_stats = {}

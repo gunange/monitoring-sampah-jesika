@@ -25,7 +25,8 @@ def extract_features_bgr(img):
         lap = cv2.Laplacian(gray, cv2.CV_64F)
         lap_var = float(lap.var())
 
-        edges = cv2.Canny(img, 100, 200)
+        # SELARASKAN DENGAN KNN: gunakan Canny pada grayscale
+        edges = cv2.Canny(gray, 100, 200)
         edge_ratio = float(np.count_nonzero(edges)) / float(h * w) if (h * w) > 0 else 0.0
 
         _, thr = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
