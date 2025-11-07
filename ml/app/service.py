@@ -14,6 +14,7 @@ from ml.router.frame_router import frame_router
 from ml.router.camera_router import camera_router
 from ml.router.dataset_router import dataset_router
 from ml.router.knn_router import knn_router
+from ml.router.machine_router import machine_router
 
 # module: service.py (deklarasi global)
 app = FastAPI()
@@ -23,6 +24,7 @@ app.include_router(frame_router)
 app.include_router(camera_router)
 app.include_router(dataset_router)
 app.include_router(knn_router)
+app.include_router(machine_router)
 
 _latest_jpeg: bytes | None = None
 _latest_raw_jpeg: bytes | None = None
@@ -36,6 +38,195 @@ _worker_thread: threading.Thread | None = None
 _worker_stop: threading.Event | None = None
 
 logger = get_logger("ml-service", Path("ml/logs/ml_service.log"))
+
+# =========================
+# Scheduler: Machine Runner
+# =========================
+_machine_thread: threading.Thread | None = None
+_machine_stop: threading.Event | None = None
+_machine_status: dict = {
+    "running": False,
+    "last_run": None,
+    "run_count": 0,
+    "interval_min": None,
+    "last_result": None,
+}
+
+def get_machine_interval_min() -> int:
+    return max(1, get_int("MACHINE_INTERVAL_MINUTES", 5))
+
+def _get_raw_frame_jpeg() -> bytes | None:
+    # Coba ambil dari buffer stream yang ada
+    with _state_lock:
+        live = _latest_raw_jpeg
+    if live:
+        return live
+    # Jika buffer kosong, lakukan capture sekali
+    src = parse_camera_src()
+    backend = get_str("CAMERA_BACKEND", "AVFOUNDATION")
+    cap = open_capture(src, backend)
+    if cap is None:
+        return None
+    try:
+        warm_frames = max(10, get_int("CAPTURE_WARM_FRAMES", 15))
+        for _ in range(warm_frames):
+            ok_w, _ = cap.read()
+            if not ok_w:
+                break
+            time.sleep(0.02)
+        ok, frame = cap.read()
+    finally:
+        try:
+            cap.release()
+        except Exception:
+            pass
+    if not ok or frame is None:
+        return None
+    ok_raw, raw_jpeg = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+    if not ok_raw:
+        return None
+    return raw_jpeg.tobytes()
+
+def _save_detection_and_dataset(raw_bytes: bytes, label_norm: str, knn_conf: float | None, trash_pct: float, roi: tuple[int,int,int,int]) -> dict:
+    ensure_detection_dirs()
+    detect_dir = get_detection_dir()
+    ensure_dir(detect_dir)
+    ts = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+    short_id = uuid.uuid4().hex[:8]
+    safe_label = label_norm.lower().replace(" ", "_")
+    filename = f"{ts.replace(':','').replace('.','').replace('-','')}_{safe_label}_{short_id}.jpg"
+    out_path = detect_dir / filename
+
+    try:
+        with open(out_path, "wb") as f:
+            f.write(raw_bytes)
+    except Exception as e:
+        logger.error(f"Gagal menyimpan detection file: {e}")
+        return {"ok": False, "error": str(e)}
+
+    # Ekstraksi fitur dan update dataset.json
+    feats = {}
+    try:
+        bgr = decode_jpeg_to_bgr(raw_bytes)
+        if bgr is not None:
+            feats = extract_features_bgr(bgr)
+    except Exception as e:
+        logger.warning(f"Gagal ekstraksi fitur: {e}")
+
+    try:
+        dj = get_dataset_json()
+        items = []
+        if dj.exists():
+            try:
+                items = json.loads(dj.read_text(encoding="utf-8") or "[]")
+            except Exception:
+                items = []
+        entry = {
+            "path": str(out_path),
+            "label": label_norm,
+            "ts": ts,
+            "features": feats,
+            "knnConfidence": knn_conf,
+            "trashPct": round(trash_pct, 2),
+            "roi": {"x": roi[0], "y": roi[1], "w": roi[2], "h": roi[3]},
+        }
+        items.append(entry)
+        dj.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+        return {"ok": True, "path": str(out_path), "entry": entry}
+    except Exception as e:
+        logger.error(f"Gagal update dataset.json: {e}")
+        return {"ok": False, "error": str(e), "path": str(out_path)}
+
+def machine_worker(stop_event: threading.Event):
+    # Jalankan deteksi berkala berdasarkan interval .env
+    interval_min = get_machine_interval_min()
+    with _state_lock:
+        _machine_status.update({"running": True, "interval_min": interval_min})
+    try:
+        while not stop_event.is_set():
+            raw_jpeg = _get_raw_frame_jpeg()
+            result = None
+            try:
+                knn_label, knn_conf = None, None
+                trash_pct, suppressed, rx, ry, rw, rh = 0.0, False, 0, 0, 0, 0
+                if raw_jpeg:
+                    bgr = decode_jpeg_to_bgr(raw_jpeg)
+                    if bgr is not None:
+                        m = compute_metrics(bgr)
+                        trash_pct = m["trash_pct"]
+                        suppressed = m["suppressed"]
+                        rx, ry, rw, rh = m["roi"]
+                        # KNN pada ROI jika tersedia
+                        if _knn_model is not None and not suppressed:
+                            try:
+                                roi_img = bgr[ry:ry+rh, rx:rx+rw] if rw > 0 and rh > 0 else bgr
+                                from .knn import predict_knn
+                                knn_label, knn_conf = predict_knn(_knn_model, roi_img)
+                            except Exception as e:
+                                logger.error(f"KNN infer error: {e}")
+                # Keputusan label akhir
+                label_norm = "BERSIH"
+                if suppressed:
+                    label_norm = "BERSIH"
+                elif knn_label is not None:
+                    label_norm = "ADA SAMPAH" if knn_label == "ADA_SAMPAH" else "BERSIH"
+                else:
+                    thr = get_int("ALERT_THRESHOLD", 12)
+                    label_norm = "ADA SAMPAH" if trash_pct >= thr else "BERSIH"
+
+                save_info = {"ok": False}
+                log_clean = get_str("SAVE_LOG_BERSIH", "false").lower() in {"1","true","yes","y"}
+                should_save = (label_norm != "BERSIH") or log_clean
+                if raw_jpeg and should_save:
+                    save_info = _save_detection_and_dataset(raw_jpeg, label_norm, knn_conf, trash_pct, (rx, ry, rw, rh))
+
+                result = {
+                    "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                    "label": label_norm,
+                    "knnConfidence": knn_conf,
+                    "trashPct": round(trash_pct, 2),
+                    "suppressed": suppressed,
+                    "saved": save_info,
+                }
+            except Exception as e:
+                logger.error(f"Machine run error: {e}")
+                result = {"ok": False, "error": str(e)}
+
+            with _state_lock:
+                _machine_status.update({
+                    "last_run": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                    "run_count": int(_machine_status.get("run_count", 0)) + 1,
+                    "last_result": result,
+                    "interval_min": interval_min,
+                })
+
+            # Tunggu sesuai interval atau until stop
+            if stop_event.wait(interval_min * 60):
+                break
+    finally:
+        with _state_lock:
+            _machine_status.update({"running": False})
+
+def start_machine():
+    global _machine_thread, _machine_stop
+    if _machine_stop:
+        _machine_stop.set()
+        time.sleep(0.5)
+    _machine_stop = threading.Event()
+    _machine_thread = threading.Thread(target=machine_worker, args=(_machine_stop,), daemon=True)
+    _machine_thread.start()
+    return True
+
+def stop_machine():
+    global _machine_stop
+    if _machine_stop:
+        _machine_stop.set()
+        time.sleep(0.3)
+    return True
+
+def get_machine_status() -> dict:
+    with _state_lock:
+        return dict(_machine_status)
 
 _camera_status: dict = {"open": False, "src": None, "backend": None, "last_error": None}
 
@@ -439,6 +630,13 @@ def start_worker():
     _worker_stop = threading.Event()
     _worker_thread = threading.Thread(target=camera_worker, args=(_worker_stop,), daemon=True)
     _worker_thread.start()
+
+def stop_worker():
+    global _worker_stop
+    if _worker_stop:
+        _worker_stop.set()
+        time.sleep(0.3)
+    return True
 
 @app.on_event("startup")
 def on_startup():
