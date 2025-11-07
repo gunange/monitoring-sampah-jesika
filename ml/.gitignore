@@ -2,6 +2,7 @@
 node_modules/
 app/__pycache__
 router/__pycache__
+controllers/__pycache__
 data/raw
 data/detections
 data/dataset.json
