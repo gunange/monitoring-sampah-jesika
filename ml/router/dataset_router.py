@@ -32,7 +32,7 @@ def dataset_html():
             <img id="img" style="display:none" alt="preview" />
           </div>
           <div class="toolbar">
-            <button id="startCam" class="primary">Mulai Kamera</button>
+            <!-- Hapus tombol Mulai Kamera / Stop Service -->
             <button id="showStatus">Status Kamera</button>
             <button id="saveBersih">Simpan BERSIH</button>
             <button id="saveSampah" class="danger">Simpan ADA SAMPAH</button>
@@ -44,7 +44,7 @@ def dataset_html():
             <button id="uploadBtn">Upload</button>
             <span id="dsInfo"></span>
           </div>
-          <div class="note">Jika stream gagal, halaman otomatis pakai fallback snapshot. Anda juga bisa unggah file gambar yang sudah ada.</div>
+          <div class="note">Stream kamera akan otomatis ditampilkan. Jika stream gagal, halaman pakai fallback snapshot.</div>
           <div id="camStatus" class="status"></div>
           <script>
             const dsInfo = document.getElementById('dsInfo');
@@ -69,24 +69,6 @@ def dataset_html():
 
             let usingRawFallback = false;
             let rawTimer = null;
-
-            // Tanpa polling: perbarui tombol hanya saat diperlukan
-            async function updateCamButton() {
-              try {
-                const st = await (await fetch('/status')).json();
-                const btn = document.getElementById('startCam');
-                if (st.camera && st.camera.open === true) {
-                  btn.textContent = 'Stop Service';
-                  btn.classList.remove('primary');
-                  btn.classList.add('danger');
-                } else {
-                  btn.textContent = 'Mulai Kamera';
-                  btn.classList.remove('danger');
-                  btn.classList.add('primary');
-                  showPlaceholder();
-                }
-              } catch(e) {}
-            }
 
             function attachStream() {
               usingRawFallback = false;
@@ -121,43 +103,17 @@ def dataset_html():
               camStatus.textContent = lines.join('\\n');
             }
 
-            async function tryStartCamera() {
-              // Start seluruh service (worker + scheduler)
-              attachRawFallback();
-              await fetch('/machine/start', {method:'GET'});
-              await new Promise(r => setTimeout(r, 900));
-              await showCamStatus();
-              const st = await (await fetch('/status')).json();
-              if (st.camera && st.camera.open === true) {
-                attachStream();
-              }
-              await updateCamButton(); // update tombol sekali
+            // Inisialisasi: ambil frame via stream seperti stream_router
+            async function init() {
+              attachStream();         // auto-start worker jika perlu (ditangani oleh /stream)
+              await showCamStatus();  // opsional: tampilkan status
               refreshDataset();
             }
+            init();
 
-            async function stopService() {
-              await fetch('/machine/stop', {method:'GET'});
-              if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
-              showPlaceholder();
-              await showCamStatus();
-              await updateCamButton(); // sekali saja
-            }
-
-            document.getElementById('startCam').onclick = async () => {
-              const st = await (await fetch('/status')).json();
-              if (st.camera && st.camera.open === true) {
-                await stopService();
-              } else {
-                await tryStartCamera();
-              }
-            };
             document.getElementById('showStatus').onclick = async () => {
               await showCamStatus();
-              await updateCamButton();
             };
-
-            // Inisialisasi satu kali tanpa polling
-            updateCamButton();
 
             // Upload & Simpan tetap sama
             document.getElementById('saveBersih').onclick = async () => {
@@ -196,13 +152,16 @@ def dataset_html():
               alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
               refreshDataset();
             };
-            // Tambah: tombol Train KNN dari halaman dataset
-            document.getElementById('trainKnn').onclick = async () => {
-              const r = await fetch('/knn/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-              const j = await r.json();
-              alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
-              refreshDataset();
-            };
+            // Guard: jika suatu saat tombol Train KNN ditambahkan
+            const trainBtn = document.getElementById('trainKnn');
+            if (trainBtn) {
+              trainBtn.onclick = async () => {
+                const r = await fetch('/knn/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                const j = await r.json();
+                alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
+                refreshDataset();
+              };
+            }
           </script>
         </body></html>
         """
