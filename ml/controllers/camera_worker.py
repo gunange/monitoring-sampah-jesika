@@ -124,7 +124,10 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                 fg = cv2.morphologyEx(thr, cv2.MORPH_OPEN, kernel, iterations=1)
                 trash_pct = (float(cv2.countNonZero(fg)) / float(fg.size)) * 100.0
 
-            knn_label, knn_conf = None, None
+            # reset label setiap frame
+            knn_label, knn_conf = None, 0.0
+
+            # KNN hanya saat tidak suppressed
             if knn_enabled and knn_model is not None and not suppressed:
                 try:
                     from ml.app.knn import predict_knn
@@ -132,13 +135,18 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                 except Exception as e:
                     ctx.logger.error(f"KNN infer error: {e}")
 
-            # === Fitur pra-KNN ===
+            # === Fitur pra-KNN (definisikan sebelum dipakai di overlay) ===
             hsv_stats = {}
             lbp59 = []
             edge_den = 0.0
             shape_feats = {"area_ratio": 0.0, "solidity": 0.0, "hu7": [0.0]*7}
             try:
-                from ml.app.image_features import hsv_hist_and_stats_bgr, lbp_uniform_hist, edge_density, contour_features_from_mask
+                from ml.app.image_features import (
+                    hsv_hist_and_stats_bgr,
+                    lbp_uniform_hist,
+                    edge_density,
+                    contour_features_from_mask,
+                )
                 hsv_stats = hsv_hist_and_stats_bgr(roi_img) or {}
                 gray_roi = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
                 lbp59 = lbp_uniform_hist(gray_roi) or []
@@ -148,20 +156,37 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
             except Exception as e:
                 ctx.logger.warning(f"Pra-KNN feature error: {e}")
 
-            is_trash = (trash_pct >= threshold) or (knn_label == "ADA_SAMPAH")
+            # === Similarity ke dataset referensi (skip bila suppressed) ===
+            sim_label, sim_top1, sim_topk = None, 0.0, 0.0
+            try:
+                from ml.app.reference import compute_similarity, has_reference
+                if not suppressed and has_reference():
+                    sim_label, sim_top1, sim_topk = compute_similarity(roi_img, knn_model, topk=5)
+            except Exception as e:
+                ctx.logger.warning(f"Similarity compute error: {e}")
+
+            # === Keputusan trash: HANYA berdasarkan KNN ===
+            positive_labels = {"ADA_SAMPAH", "ADA SAMPAH", "SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}
+            is_trash = (not suppressed) and (knn_label in positive_labels)
+
+            # Overlay utama
             text = f"Trash {round(trash_pct, 2)}%{' SUP' if suppressed else ''}"
             cv2.putText(frame, text, (margin, margin + 20), font, font_scale, color, thickness, cv2.LINE_AA)
 
-            # Tampilkan hasil KNN (jika ada), khususnya saat mendeteksi sampah
-            if knn_label is not None:
-                knn_text = f"KNN: {'ADA SAMPAH' if knn_label == 'ADA_SAMPAH' else 'BERSIH'}"
-                if knn_conf is not None:
-                    knn_text += f" ({round(knn_conf, 2)})"
-                # posisi tepat di bawah baris Trash
-                cv2.putText(frame, knn_text, (margin, margin + 40), font, font_scale, color, thickness, cv2.LINE_AA)
+            # Tampilkan KNN hanya bila tidak suppressed (ganti teks ke SAMPAH MENUMPUK)
+            if not suppressed and knn_label:
+                if knn_label in positive_labels:
+                    cv2.putText(frame, f"KNN: SAMPAH MENUMPUK ({round(knn_conf, 2)})", (margin, margin + 40), font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
+                else:
+                    cv2.putText(frame, f"KNN: BERSIH ({round(knn_conf, 2)})", (margin, margin + 40), font, font_scale, (0, 255, 0), thickness, cv2.LINE_AA)
 
-            # Overlay ringkasan fitur (baris tambahan)
-            y = margin + 46
+            # Tampilkan Similarity sebagai INFO saja (tidak mempengaruhi keputusan)
+            if not suppressed and sim_label:
+                sim_info = f"SIM: {sim_label} top1={round(sim_top1, 2)} avg5={round(sim_topk, 2)}"
+                cv2.putText(frame, sim_info, (margin, margin + 60), font, font_scale, color, thickness, cv2.LINE_AA)
+
+            # Overlay ringkasan fitur pra-KNN (HSV/LBP/Edge/Shape)
+            y = margin + 86
             # HSV stats line
             if hsv_stats:
                 cv2.putText(
@@ -211,6 +236,9 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                     "cooldownActive": (time.time() - last_capture_ts) < detect_cooldown_s,
                     "knnLabel": knn_label,
                     "knnConfidence": knn_conf,
+                    "similarityLabel": sim_label,
+                    "similarityTop1": round(sim_top1, 6),
+                    "similarityAvg5": round(sim_topk, 6),
                     # fitur pra-KNN untuk monitoring
                     "features": {
                         **(hsv_stats or {}),
@@ -231,8 +259,10 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
                 ok_save = cv2.imwrite(str(out_path), raw_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
                 if ok_save:
                     last_capture_ts = now
+                # Normalisasi label untuk penyimpanan/dataset agar kompatibel
+                det_label = "ADA_SAMPAH" if (knn_label in positive_labels or (knn_label is None and is_trash)) else "BERSIH"
                 ctx.logger.info(
-                    f"DETECTED: label={(knn_label if knn_label is not None else ('ADA_SAMPAH' if is_trash else 'BERSIH'))} "
+                    f"DETECTED: label={det_label} "
                     f"trashPct={round(trash_pct, 2)} suppressed={suppressed} "
                     f"roi=({rx},{ry},{rw},{rh}) saved={'yes' if ok_save else 'no'} "
                     f"path={out_path if ok_save else None}"

@@ -52,6 +52,11 @@ def machine_worker(stop_event: threading.Event, ctx: MachineContext):
                 thr = ctx.get_int("ALERT_THRESHOLD", 12)
                 is_trash = (trash_pct >= thr) or (knn_label == "ADA_SAMPAH")
 
+                # Keputusan label akhir: HANYA KNN
+                positive_labels = {"ADA_SAMPAH", "ADA SAMPAH", "SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}
+                is_trash = (knn_label in positive_labels) and (not suppressed)
+
+                # Normalisasi label untuk penyimpanan dataset (tetap "ADA SAMPAH" demi kompatibilitas)
                 if suppressed:
                     label_norm = "BERSIH"
                 else:
@@ -59,7 +64,6 @@ def machine_worker(stop_event: threading.Event, ctx: MachineContext):
 
                 save_info = {"ok": False}
                 log_clean = ctx.get_str("SAVE_LOG_BERSIH", "false").lower() in {"1","true","yes","y"}
-                # Simpan jika tidak suppressed dan (trash OR knn) atau mode log bersih diaktifkan
                 should_save = (not suppressed) and (is_trash or log_clean)
                 if raw_jpeg and should_save:
                     save_info = ctx.save_detection_and_dataset(

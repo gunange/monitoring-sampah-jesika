@@ -15,22 +15,19 @@ def knn_status():
 
 @knn_router.post("/knn/train")
 def knn_train(payload: dict):
-    # Lazy import untuk hindari circular import
     from pathlib import Path
     from ml.app.config import get_str, get_int
-    from ml.app.service import _state_lock, _knn_model, dataset_counts
-    from ml.app.knn import train_knn, load_knn
-
+    from ml.app.service import _state_lock, _knn_model, dataset_counts, get_dataset_json
+    from ml.app.knn import train_knn_from_dataset_json, load_knn
     neighbors = int(payload.get("neighbors", get_int("KNN_NEIGHBORS", 5)))
     out_path = Path(payload.get("out", get_str("KNN_MODEL_PATH", "ml/models/knn.joblib")))
-    root = Path(payload.get("root", "ml/data/labeled"))
-
+    dataset_path = get_dataset_json()
     counts = dataset_counts()
-    if (counts["BERSIH"] + counts["ADA_SAMPAH"]) == 0:
-        return {"ok": False, "error": "Dataset kosong. Tambah data latih dulu."}
-
+    total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0))
+    if total == 0:
+        return {"ok": False, "error": "Dataset kosong. Tambah data latih dulu via /dataset."}
     try:
-        out = train_knn(labeled_root=root, out_path=out_path, n_neighbors=neighbors)
+        out = train_knn_from_dataset_json(dataset_path=dataset_path, out_path=out_path, n_neighbors=neighbors)
         model = load_knn(out)
         with _state_lock:
             _knn_model = model

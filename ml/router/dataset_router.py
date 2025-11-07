@@ -196,6 +196,13 @@ def dataset_html():
               alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
               refreshDataset();
             };
+            // Tambah: tombol Train KNN dari halaman dataset
+            document.getElementById('trainKnn').onclick = async () => {
+              const r = await fetch('/knn/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+              const j = await r.json();
+              alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
+              refreshDataset();
+            };
           </script>
         </body></html>
         """
@@ -263,8 +270,56 @@ def dataset_add(payload: dict):
     except Exception as e:
         return {"ok": False, "error": f"Gagal menyimpan: {e}"}
 
+    # BARU: ekstrak fitur dan simpan ke dataset.json (+ optional KNN)
+    feats = {}
+    try:
+        from ml.app.service import decode_jpeg_to_bgr, extract_features_bgr, get_dataset_json, logger
+        try:
+            bgr = decode_jpeg_to_bgr(raw_bytes)
+        except Exception:
+            import numpy as _np, cv2 as _cv
+            bgr = _cv.imdecode(_np.frombuffer(raw_bytes, dtype=_np.uint8), _cv.IMREAD_COLOR)
+        if bgr is not None:
+            feats = extract_features_bgr(bgr) or {}
+    except Exception as e:
+        # Jangan gagal hanya karena fitur; log lalu lanjut simpan path/label
+        from ml.app.service import logger as _logger
+        _logger.warning(f"Gagal ekstraksi fitur (add): {e}")
+        feats = {}
+
+    knn_label = None
+    knn_conf = None
+    try:
+        # Prediksi KNN jika tersedia
+        from ml.app.service import _knn_model
+        from ml.app.knn import predict_knn
+        if _knn_model is not None and 'bgr' in locals() and bgr is not None:
+            lbl, conf = predict_knn(_knn_model, bgr)
+            knn_label = lbl   # "BERSIH" atau "ADA_SAMPAH"
+            knn_conf = float(conf)
+    except Exception:
+        pass
+
+    entry = {"path": str(out_path), "label": norm_label, "ts": ts, "features": feats}
+    if knn_label is not None:
+        entry["knnLabel"] = knn_label
+    if knn_conf is not None:
+        entry["knnConfidence"] = knn_conf
+
+    # Append ke dataset.json
+    try:
+        dj = get_dataset_json()
+        items = []
+        if dj.exists():
+            import json
+            items = json.loads(dj.read_text(encoding="utf-8") or "[]")
+        items.append(entry)
+        dj.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        return {"ok": False, "error": f"Gagal update dataset.json: {e}", "path": str(out_path), "entry": entry}
+
     counts = dataset_counts()
-    return {"ok": True, "path": str(out_path), **counts}
+    return {"ok": True, "path": str(out_path), "entry": entry, **counts}
 
 @dataset_router.post("/dataset/upload")
 async def dataset_upload(request: Request, label: str = ""):
@@ -339,7 +394,24 @@ async def dataset_upload(request: Request, label: str = ""):
     except Exception as e:
         logger.warning(f"Gagal ekstraksi fitur: {e}")
 
+    # BARU: prediksi KNN saat upload jika model ter-load
+    knn_label = None
+    knn_conf = None
+    try:
+        from ml.app.service import _knn_model
+        from ml.app.knn import predict_knn
+        if _knn_model is not None and bgr is not None:
+            lbl, conf = predict_knn(_knn_model, bgr)
+            knn_label = lbl
+            knn_conf = float(conf)
+    except Exception:
+        pass
+
     entry = {"path": str(out_path), "label": norm_label, "ts": ts, "features": feats}
+    if knn_label is not None:
+        entry["knnLabel"] = knn_label
+    if knn_conf is not None:
+        entry["knnConfidence"] = knn_conf
 
     try:
         dj = get_dataset_json()

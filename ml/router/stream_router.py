@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 
 stream_router = APIRouter()
 
@@ -42,3 +42,59 @@ def stream_metrics():
         "knnLabel": m.get("knnLabel"),
         "knnConfidence": m.get("knnConfidence"),
     }
+
+@stream_router.get("/stream/html")
+def stream_html():
+    return HTMLResponse(
+        """
+        <!doctype html><html><head><meta charset="utf-8"><title>ML Stream</title>
+          <style>
+            body{margin:0;background:#111;height:100vh;color:#ddd;font-family:system-ui}
+            .wrap{display:flex;align-items:center;justify-content:center;height:80vh}
+            img{max-width:96vw;max-height:70vh;border:8px solid #333;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+            .toolbar{display:flex;gap:8px;align-items:center;justify-content:center;padding:10px}
+            button{background:#444;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+            button.primary{background:#0a7}
+            button.danger{background:#c33}
+            .badge{position:fixed;top:14px;left:14px;background:#222;color:#ddd;padding:6px 10px;border-radius:6px}
+            .note{font-size:12px;color:#aaa;text-align:center;margin-top:6px}
+          </style>
+        </head>
+        <body>
+          <div class="badge">Stream Kamera</div>
+          <div class="wrap"><img id="img" src="/stream" /></div>
+          <div class="toolbar">
+            <button id="startCam" class="primary">Mulai Kamera</button>
+            <button id="trainKnn">Train KNN</button>
+            <span id="dsInfo"></span>
+          </div>
+          <div class="note">Halaman melihat stream langsung.</div>
+          <script>
+            const dsInfo = document.getElementById('dsInfo');
+            async function refreshStatus(){
+              const st = await (await fetch('/status')).json();
+              const k = await (await fetch('/knn/status')).json();
+              const ds = await (await fetch('/dataset/status')).json();
+              dsInfo.textContent = `Camera open=${st.camera.open} • KNN loaded=${k.loaded} • Dataset: BERSIH=${ds.BERSIH} ADA_SAMPAH=${ds.ADA_SAMPAH}`;
+            }
+            refreshStatus();
+            document.getElementById('startCam').onclick = async () => {
+              await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'AVFOUNDATION'})});
+              setTimeout(async () => {
+                const st = await (await fetch('/status')).json();
+                if (!st.camera.open) {
+                  await fetch('/camera', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({src:'0', backend:'ANY'})});
+                }
+                refreshStatus();
+              }, 600);
+            };
+            document.getElementById('trainKnn').onclick = async () => {
+              const r = await fetch('/knn/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+              const j = await r.json();
+              alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
+              refreshStatus();
+            };
+          </script>
+        </body></html>
+        """
+    )

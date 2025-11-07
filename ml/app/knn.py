@@ -9,6 +9,7 @@ from sklearn.neighbors import KNeighborsClassifier
 import joblib
 from typing import Iterable, Tuple
 
+# kelas/fungsi terkait
 LABEL_MAP = {"BERSIH": 0, "ADA_SAMPAH": 1}
 INV_LABEL_MAP = {v: k for k, v in LABEL_MAP.items()}
 
@@ -50,6 +51,28 @@ def iter_labeled_images(root: Path) -> Iterable[Tuple[Path, int]]:
             if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"}:
                 yield p, lbl
 
+# === BARU: bangun vektor dari dataset.json ===
+def _vector_from_features_dict(fd: dict) -> np.ndarray | None:
+    try:
+        import numpy as np
+        h = np.asarray(fd.get("color_hist_h", []), dtype=np.float32)
+        s = np.asarray(fd.get("color_hist_s", []), dtype=np.float32)
+        v = np.asarray(fd.get("color_hist_v", []), dtype=np.float32)
+        if h.size != 16 or s.size != 16 or v.size != 16:
+            return None
+        def l1(x: np.ndarray) -> np.ndarray:
+            s = float(x.sum()) or 1.0
+            return (x / s).astype(np.float32)
+        h = l1(h); s = l1(s); v = l1(v)
+        edge_density = float(fd.get("edge_ratio", 0.0))
+        lap_var = float(fd.get("laplacian_var", 0.0))
+        v_mean = float(fd.get("v_mean", 0.0)) / 255.0 if fd.get("v_mean") is not None else 0.0
+        v_std  = float(fd.get("v_std", 0.0)) / 255.0 if fd.get("v_std") is not None else 0.0
+        vec = np.concatenate([h, s, v, np.array([edge_density, lap_var, v_mean, v_std], dtype=np.float32)])
+        return vec.astype(np.float32)
+    except Exception:
+        return None
+
 def train_knn(
     labeled_root: Path = Path("ml/data/labeled"),
     out_path: Path = Path("ml/models/knn.joblib"),
@@ -65,6 +88,48 @@ def train_knn(
 
     if not X:
         raise RuntimeError(f"Tidak ada data di {labeled_root}. Siapkan folder BERSIH/ADA_SAMPAH terlebih dahulu.")
+
+    X = np.asarray(X, dtype=np.float32)
+    y = np.asarray(y, dtype=np.int32)
+
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("knn", KNeighborsClassifier(n_neighbors=n_neighbors, weights="distance")),
+    ])
+    model.fit(X, y)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, out_path)
+    return out_path
+
+# === BARU: latih KNN dari dataset.json (versi terbaru sistem) ===
+def train_knn_from_dataset_json(
+    dataset_path: Path = Path("ml/data/dataset.json"),
+    out_path: Path = Path("ml/models/knn.joblib"),
+    n_neighbors: int = 5,
+) -> Path:
+    import json, numpy as np
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.neighbors import KNeighborsClassifier
+    import joblib
+
+    items = []
+    if dataset_path.exists():
+        items = json.loads(dataset_path.read_text(encoding="utf-8") or "[]")
+
+    X, y = [], []
+    for it in items:
+        fd = it.get("features") or {}
+        vec = _vector_from_features_dict(fd)
+        lbl_raw = str(it.get("label") or "").strip().upper().replace(" ", "_")
+        if vec is None:
+            continue
+        if lbl_raw not in LABEL_MAP:
+            continue
+        X.append(vec); y.append(LABEL_MAP[lbl_raw])
+
+    if not X:
+        raise RuntimeError("Dataset kosong/tidak valid di ml/data/dataset.json")
 
     X = np.asarray(X, dtype=np.float32)
     y = np.asarray(y, dtype=np.int32)
