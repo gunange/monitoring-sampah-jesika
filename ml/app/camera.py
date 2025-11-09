@@ -1,6 +1,8 @@
 import cv2
 from typing import Any
 from ml.app.config import get_str
+from ml.app.services import logger
+
 
 BACKENDS = {
     "ANY": int(cv2.CAP_ANY),
@@ -58,3 +60,48 @@ def open_capture(src, backend_name: str | None, camera_status: dict, logger: Any
             logger.error(f"Gagal membuka kamera src={src} backend={backend_name}. Dicoba: {tried}")
         return None
     return cap
+
+class CameraController:
+    def __init__(self):
+        self.cap = None
+        self.status = {"open": False, "src": None, "backend": None, "last_error": None}
+        self.running = False
+
+    def start(self) -> bool:
+        if self.cap and self.running:
+            return True    
+        src = parse_camera_src()
+        backend_name = get_str("CAMERA_BACKEND", "AVFOUNDATION")
+        cap = open_capture(src, backend_name, self.status, logger)
+        if cap is None:
+            self.cap = None
+            self.running = False
+            return False
+        self.cap = cap
+        self.running = True
+        return True
+
+    def stop(self) -> None:
+        self.running = False
+        try:
+            if self.cap:
+                self.cap.release()
+        except Exception:
+            pass
+        self.cap = None
+        self.status.update({"open": False})
+
+    def get_cap(self):
+        return self.cap if self.running and self.cap is not None else None
+
+    def get_status(self):
+        return {
+            "running": self.running,
+            "open": bool(self.cap),
+            "src": self.status.get("src"),
+            "backend": self.status.get("backend"),
+            "last_error": self.status.get("last_error"),
+        }
+
+# Singleton controller
+controller = CameraController()
