@@ -27,7 +27,7 @@
       "request": "launch",
       "python": "${workspaceFolder}/ml/.venv/bin/python",
       "module": "uvicorn",
-      "args": ["ml.app.service:app", "--host", "127.0.0.1", "--port", "3102"],
+      "args": ["ml.index:app", "--host", "127.0.0.1", "--port", "3102"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/ml/.env",
@@ -40,9 +40,5 @@
       "name": "All Services",
       "configurations": ["Bun API", "Vue Dev", "ML Service"]
     },
-    {
-      "name": "All Services + ML",
-      "configurations": ["Bun API", "Vue Dev", "ML Service"]
-    }
   ]
 }
