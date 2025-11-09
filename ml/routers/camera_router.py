@@ -90,7 +90,7 @@ def stream():
                        b"Content-Type: image/jpeg\r\n" +
                        b"Content-Length: " + str(len(b)).encode() + b"\r\n\r\n" +
                        b + b"\r\n")
-                time.sleep(0.7 / float(fps))
+                time.sleep(1.0 / float(fps))
         finally:
             # Jangan release di sini; controller mengelola lifecycle.
             pass
