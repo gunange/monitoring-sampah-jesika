@@ -8,14 +8,7 @@ logger = get_logger("image-features", Path("ml/logs/ml_service.log"))
 def extract_features_bgr(img):
     try:
         h, w = img.shape[:2]
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
-        hist_h = cv2.calcHist([hsv], [0], None, [16], [0, 180]).flatten()
-        hist_s = cv2.calcHist([hsv], [1], None, [16], [0, 256]).flatten()
-        hist_v = cv2.calcHist([hsv], [2], None, [16], [0, 256]).flatten()
-        for hist in (hist_h, hist_s, hist_v):
-            s = float(hist.sum()) or 1.0
-            hist /= s
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)     
 
         h_mean = float(hsv[:, :, 0].mean()); h_std = float(hsv[:, :, 0].std())
         s_mean = float(hsv[:, :, 1].mean()); s_std = float(hsv[:, :, 1].std())
@@ -38,9 +31,6 @@ def extract_features_bgr(img):
         return {
             "width": int(w),
             "height": int(h),
-            "color_hist_h": hist_h.tolist(),
-            "color_hist_s": hist_s.tolist(),
-            "color_hist_v": hist_v.tolist(),
             "h_mean": h_mean, "h_std": h_std,
             "s_mean": s_mean, "s_std": s_std,
             "v_mean": v_mean, "v_std": v_std,

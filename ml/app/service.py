@@ -409,25 +409,3 @@ def dataset_counts():
 def dataset_ready() -> bool:
     c = dataset_counts()
     return c.get("TOTAL", c.get("BERSIH", 0) + c.get("ADA_SAMPAH", 0) + c.get("SAMPAH_MENUMPUK", 0)) > 0
-
-@app.get("/diag/camera")
-def diag_camera(src: str | None = None):
-    test_src = int(src) if src is not None and src.isdigit() else parse_camera_src()
-    results = []
-    for name in ["AVFOUNDATION", "ANY", None]:
-        label = name or "DEFAULT"
-        err = None
-        opened = False
-        read_ok = False
-        try:
-            cap = cv2.VideoCapture(test_src, BACKENDS.get(name.upper(), cv2.CAP_ANY)) if name else cv2.VideoCapture(test_src)
-            opened = bool(cap and cap.isOpened())
-            if opened:
-                ok, _ = cap.read()
-                read_ok = bool(ok)
-            if cap:
-                cap.release()
-        except Exception as e:
-            err = str(e)
-        results.append({"backend": label, "opened": opened, "read_ok": read_ok, "error": err})
-    return {"src": test_src, "results": results}

@@ -249,7 +249,7 @@ def dataset_add(payload: dict):
         from ml.app.knn import predict_knn
         if _knn_model is not None and 'bgr' in locals() and bgr is not None:
             lbl, conf = predict_knn(_knn_model, bgr)
-            knn_label = lbl   # "BERSIH" atau "ADA_SAMPAH"
+            knn_label = lbl
             knn_conf = float(conf)
     except Exception:
         pass
