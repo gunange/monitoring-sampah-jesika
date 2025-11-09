@@ -1,7 +1,6 @@
 import cv2
 from typing import Any
 from ml.app.config import get_str
-from ml.app.services import logger
 
 
 BACKENDS = {
@@ -68,6 +67,8 @@ class CameraController:
         self.running = False
 
     def start(self) -> bool:
+        from ml.app.services import logger
+        
         if self.cap and self.running:
             return True    
         src = parse_camera_src()
@@ -102,6 +103,3 @@ class CameraController:
             "backend": self.status.get("backend"),
             "last_error": self.status.get("last_error"),
         }
-
-# Singleton controller
-controller = CameraController()
