@@ -1,12 +1,14 @@
+# impor modul
 import cv2, time
 import threading
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 from typing import Callable, Any
+import requests
 
 from ml.app.config import get_int, get_str
-from ml.app.utils import ensure_dir, timestamp_str
+from ml.app.utils import ensure_dir, timestamp_str, get_logger
 from ml.app.camera_open import parse_camera_src, open_capture
 
 @dataclass
@@ -66,6 +68,12 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
     fail_count = 0
     last_alert_ts = 0.0
     last_capture_ts = 0.0
+
+    # State: logging perubahan KNN dan penumpukan (log terpisah)
+    trash_logger = get_logger("trash-info", Path("ml/logs/trash_info.log"))
+    last_knn_label_logged = None
+    accum_start_ts = None
+    accum_notified = False
     try:
         while not stop_event.is_set():
             ok, frame = cap.read()
@@ -178,6 +186,70 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
             positive_labels = {"ADA_SAMPAH", "ADA SAMPAH", "SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}
             is_trash = (not suppressed) and (knn_label in positive_labels)
 
+            # Normalisasi label (3 kelas) untuk log & dataset
+            label_norm = "BERSIH"
+            if not suppressed:
+                if knn_label in {"SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}:
+                    label_norm = "SAMPAH MENUMPUK"
+                elif knn_label in {"ADA SAMPAH", "ADA_SAMPAH"}:
+                    label_norm = "ADA SAMPAH"
+
+            # === Log perubahan KNN dan kontrol penumpukan ===
+            now_ts = time.time()
+            if label_norm != last_knn_label_logged:
+                prev = last_knn_label_logged
+                trash_logger.info(
+                    f"KNN_CHANGE: from={prev} to={label_norm} "
+                    f"conf={round(knn_conf or 0.0, 3)} trashPct={round(trash_pct, 2)} "
+                    f"suppressed={suppressed}"
+                )
+                # Masuk ke penumpukan
+                if label_norm == "SAMPAH MENUMPUK" and not suppressed:
+                    accum_start_ts = now_ts
+                    accum_notified = False
+                    trash_logger.info("ACCUM_START: SAMPAH MENUMPUK dimulai")
+                else:
+                    # Keluar dari penumpukan, reset
+                    if accum_start_ts is not None:
+                        duration = now_ts - accum_start_ts
+                        trash_logger.info(f"ACCUM_END: durasi={round(duration,1)}s label_now={label_norm}")
+                    accum_start_ts = None
+                    accum_notified = False
+
+                last_knn_label_logged = label_norm
+            else:
+                # Stabil: cek durasi hanya jika BELUM mengirim notifikasi
+                if (
+                    label_norm == "SAMPAH MENUMPUK"
+                    and not suppressed
+                    and accum_start_ts is not None
+                    and not accum_notified
+                ):
+                    duration = now_ts - accum_start_ts
+                    trash_logger.info(f"ACCUM_CHECK: durasi={round(duration,1)}s")
+                    if duration >= 60:
+                        try:
+                            payload = {
+                                "event": "SAMPAH_MENUMPUK",
+                                "startedAt": datetime.fromtimestamp(accum_start_ts).isoformat(),
+                                "durationSec": round(duration, 2),
+                                "knnConfidence": round(knn_conf or 0.0, 4),
+                                "trashPct": round(trash_pct, 2),
+                            }
+                            resp = requests.post("http://localhost:3101/api", json=payload, timeout=5)
+                            trash_logger.info(f"ACCUM_NOTIFY_SENT: status={resp.status_code} payload={payload}")
+                            # Hentikan cek sampai label berubah
+                            accum_notified = True
+                        except Exception as e:
+                            trash_logger.error(f"ACCUM_NOTIFY_ERROR: {e}")
+                else:
+                    if accum_start_ts is not None:
+                        duration = time.time() - accum_start_ts
+                        trash_logger.info(f"ACCUM_END: durasi={round(duration,1)}s label_now={label_norm}")
+                    accum_start_ts = None
+                    accum_notified = False
+
+                last_knn_label_logged = label_norm
             # Overlay utama
             text = f"Trash {round(trash_pct, 2)}%{' SUP' if suppressed else ''}"
             cv2.putText(frame, text, (margin, margin + 20), font, font_scale, color, thickness, cv2.LINE_AA)

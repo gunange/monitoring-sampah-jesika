@@ -13,6 +13,7 @@ from ml.router.camera_router import camera_router
 from ml.router.dataset_router import dataset_router
 from ml.router.knn_router import knn_router
 from ml.router.camera_router import camera_router
+from ml.router.machine_router import machine_router
 from ml.controllers.machine_worker import MachineContext, machine_worker as _machine_worker_controller
 
 # Delegation imports
@@ -33,6 +34,7 @@ app.include_router(frame_router)
 app.include_router(camera_router)
 app.include_router(dataset_router)
 app.include_router(knn_router)
+app.include_router(machine_router)
 
 
 _latest_jpeg: bytes | None = None
