@@ -169,6 +169,11 @@ def camera_worker(stop_event: threading.Event, ctx: CameraContext):
             except Exception as e:
                 ctx.logger.warning(f"Similarity compute error: {e}")
 
+            # Fusi KNN + Similarity: override jika KNN rendah tapi similarity kuat
+            if not suppressed and knn_label in {"SAMPAH_MENUMPUK", "SAMPAH MENUMPUK"} and knn_conf < 0.7:
+                if sim_label in {"ADA_SAMPAH", "ADA SAMPAH"} and sim_top1 >= 0.8:
+                    knn_label = "ADA_SAMPAH"
+                    knn_conf = float(sim_top1)
             # === Keputusan trash: HANYA berdasarkan KNN ===
             positive_labels = {"ADA_SAMPAH", "ADA SAMPAH", "SAMPAH MENUMPUK", "SAMPAH_MENUMPUK"}
             is_trash = (not suppressed) and (knn_label in positive_labels)

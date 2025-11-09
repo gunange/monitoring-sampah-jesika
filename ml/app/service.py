@@ -268,13 +268,12 @@ def on_startup():
             p = Path(get_str("KNN_MODEL_PATH", "ml/models/knn.joblib"))
             # Cek dataset; hanya load model jika dataset siap dan file model ada
             counts = dataset_counts()
-            total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0))
+            total = counts.get("TOTAL", counts.get("BERSIH", 0) + counts.get("ADA_SAMPAH", 0) + counts.get("SAMPAH_MENUMPUK", 0))
             if total > 0 and p.exists():
                 from .knn import load_knn
                 _knn_model = load_knn(p)
                 logger.info(f"Startup: KNN model loaded {p} (dataset total={total})")
             else:
-                # Pastikan KNN nonaktif jika dataset kosong atau model tidak ada
                 _knn_model = None
                 logger.info(f"Startup: KNN not loaded (dataset total={total}, model exists={p.exists()})")
         # Muat dataset referensi untuk similarity

@@ -75,14 +75,13 @@ def dataset_html():
             function attachStream() {
               usingRawFallback = false;
               if (rawTimer) { clearInterval(rawTimer); rawTimer = null; }
-              img.src = '/stream?ts=' + Date.now();
-              showImage();
+              img.src = '/stream?ts=' + Date.now();  // MJPEG stream
             }
 
             function attachRawFallback() {
               if (usingRawFallback) return;
               usingRawFallback = true;
-              img.src = '/frame/raw?ts=' + Date.now();
+              img.src = '/frame/raw?ts=' + Date.now(); // snapshot fallback
               showImage();
               if (rawTimer) clearInterval(rawTimer);
               rawTimer = setInterval(() => {
@@ -90,25 +89,34 @@ def dataset_html():
               }, 1000);
             }
 
+            img.addEventListener('load', () => {
+              // frame pertama diterima
+              showImage();
+            });
             img.addEventListener('error', () => {
+              // jika stream gagal, gunakan fallback snapshot
               attachRawFallback();
             });
 
             async function showCamStatus() {
-              const st = await (await fetch('/status')).json();
+              const st = await (await fetch('/camera/status')).json();
               const diag = await (await fetch('/diag/camera')).json();
               const lines = [];
-              lines.push(`open=${st.camera.open} backend=${st.camera.backend} src=${st.camera.src} saveDetections=${st.camera.saveDetections}`);
-              if (st.camera.last_error) lines.push(`last_error=${st.camera.last_error}`);
+              lines.push(`env_src=${st.camera.env_src} env_backend=${st.camera.env_backend} env_stream_fps=${st.camera.env_stream_fps}`);
+              lines.push(`live.open=${st.camera.live.open} backend=${st.camera.live.backend} src=${st.camera.live.src}`);
+              if (st.camera.live.last_error) lines.push(`last_error=${st.camera.live.last_error}`);
               lines.push('diagnostic:');
               diag.results.forEach(r => lines.push(`- ${r.backend} opened=${r.opened} read_ok=${r.read_ok} error=${r.error || '-'}`));
               camStatus.textContent = lines.join('\\n');
             }
 
-            // Inisialisasi: ambil frame via stream seperti stream_router
+            // Inisialisasi: nyalakan worker kamera, lalu attach stream
             async function init() {
-              attachStream();         // auto-start worker jika perlu (ditangani oleh /stream)
-              await showCamStatus();  // opsional: tampilkan status
+              try {
+                await fetch('/camera/start'); // pastikan worker aktif
+              } catch (e) {}
+              attachStream();         // jika gagal, akan fallback ke raw
+              await showCamStatus();  // tampilkan status
               refreshDataset();
             }
             init();
@@ -147,30 +155,6 @@ def dataset_html():
                 body: file
               });
             });
-            document.getElementById('uploadBtn').onclick = async () => {
-              const file = document.getElementById('uploadFile').files[0];
-              if (!file) { alert('Pilih file dulu'); return; }
-              const label = document.getElementById('uploadLabel').value;
-              const r = await fetch('/dataset/upload?label=' + encodeURIComponent(label), {
-                method: 'POST',
-                headers: { 'Content-Type': file.type || 'application/octet-stream' },
-                body: file
-              });
-              const j = await r.json();
-              alert(j.ok ? `Tersimpan: ${j.path}` : `Gagal: ${j.error || 'unknown'}`);
-              refreshDataset();
-            };
-            // Guard: jika suatu saat tombol Train KNN ditambahkan
-            # ... di dalam template HTML (guard tombol Train KNN), ubah fetch ke GET
-            const trainBtn = document.getElementById('trainKnn');
-            if (trainBtn) {
-              trainBtn.onclick = async () => {
-                const r = await fetch('/knn/train'); // GET
-                const j = await r.json();
-                alert(j.ok ? `Model trained: ${j.modelPath}` : `Gagal training: ${j.error || 'unknown'}`);
-                refreshDataset();
-              };
-            }
           </script>
         </body></html>
         """
