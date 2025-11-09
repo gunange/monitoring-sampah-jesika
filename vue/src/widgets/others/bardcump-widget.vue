@@ -31,7 +31,7 @@
 		<p class="text-blue-500 text-2xl">{{ title }}</p>
 		<p class="text-gray-500 dark:text-slate-300 text-xs mt-2">{{ subTitle }}</p>
 		<Breadcrumb :home="home" :model="items" class="mt-6 text-sm">
-			<template #item="{ item, props }">
+			<template #item="{ item }">
 				<router-link
 					:to="item.route"
 					v-if="item.route"

@@ -37,7 +37,7 @@
 			await auth.init();
 			apiC.resetPath();
 
-			if (auth.store.isAuth && auth.store.user.User.role === "petugas") {
+			if (auth.store.isAuth && auth.store.user.User.role === "p3tug45") {
 				auth.setToken();
 				next();
 				return;

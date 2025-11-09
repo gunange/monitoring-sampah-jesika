@@ -4,27 +4,17 @@ const routes = [
    {
       path: "",
       name: `${path_route}-main`,
-      component: () => import("@/views/dashboard/petugas/disposisi-surat.vue"),
+      component: () => import("@/views/dashboard/petugas/main-view.vue"),
    },
    {
-      path: "disposisi",
-      name: `${path_route}-disposisi`,
-      component: () => import("@/views/dashboard/petugas/disposisi-surat.vue"),
+      path: "home",
+      name: `${path_route}-home`,
+      component: () => import("@/views/dashboard/petugas/main-view.vue"),
    },
    {
-      path: "surat-masuk",
-      name: `${path_route}-surat-masuk`,
-      component: () => import("@/views/dashboard/petugas/surat-masuk.vue"),
-   },
-   {
-      path: "surat-keluar",
-      name: `${path_route}-surat-keluar`,
-      component: () => import("@/views/dashboard/petugas/surat-keluar.vue"),
-   },
-   {
-      path: "riwayat-disposisi",
-      name: `${path_route}-riwayat-disposisi`,
-      component: () => import("@/views/dashboard/petugas/riwayat-disposisi.vue"),
+      path: "monitoring",
+      name: `${path_route}-monitoring`,
+      component: () => import("@/views/dashboard/petugas/monitorin.vue"),
    },
    
 

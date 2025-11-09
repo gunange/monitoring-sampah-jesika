@@ -69,7 +69,7 @@ export class Controller {
       var routeTo = null;
       if (data && data.role === "4dm1n") {
          routeTo = "/admin";
-      } else if (data && data.role === "petugas") {
+      } else if (data && data.role === "p3tug45") {
          routeTo = "/petugas";
       } 
       return routeTo;

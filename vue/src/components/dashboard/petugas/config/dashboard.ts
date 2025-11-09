@@ -5,24 +5,14 @@ const route = routerStore();
 
 const menu = [
   {
-    label: "Disposisi Surat",
-    icon: "pi pi-share-alt",
-    route: `/${path_route}/disposisi`,
+    label: "Config",
+    icon: "pi pi-cog",
+    route: `/${path_route}/home`,
   },
   {
-    label: "Surat Masuk",
-    icon: "pi pi-inbox",
-    route: `/${path_route}/surat-masuk`,
-  },
-  {
-    label: "Surat Keluar",
-    icon: "pi pi-send",
-    route: `/${path_route}/surat-keluar`,
-  },
-  {
-    label: "Riwayat Disposisi",
-    icon: "pi pi-history",
-    route: `/${path_route}/riwayat-disposisi`,
+    label: "Monitoring",
+    icon: "pi pi-chart-line",
+    route: `/${path_route}/monitoring`,
   },
 ];
 
