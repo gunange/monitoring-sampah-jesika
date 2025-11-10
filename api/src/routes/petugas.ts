@@ -32,5 +32,4 @@ petugas.get("", (c) =>
 /* ---- dataset ---- */
 petugas.get("/dataset", PetugasRoute.DatasetCtrl.index);
 petugas.post("/dataset", PetugasRoute.DatasetCtrl.store);
-petugas.post("/dataset/ml", PetugasRoute.DatasetCtrl.storeToMl);
 petugas.delete("/dataset/:id", PetugasRoute.DatasetCtrl.destroy);

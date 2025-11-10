@@ -27,3 +27,17 @@ def get_int(name: str, default: int = 0) -> int:
         return int(os.getenv(name, default))
     except (TypeError, ValueError):
         return default
+
+def get_bool(name: str, default: bool = False) -> bool:
+    """
+    Baca boolean dari .env: true/false, 1/0, yes/no (case-insensitive).
+    """
+    val = os.getenv(name, None)
+    if val is None:
+        return default
+    s = str(val).strip().lower()
+    if s in ("1", "true", "yes", "y", "on"):
+        return True
+    if s in ("0", "false", "no", "n", "off"):
+        return False
+    return default

@@ -12,3 +12,4 @@ machineLearning.use("/*", async (_, next) => {
 machineLearning.get("/", MachineLearningRoute.MachineCtrl.index);
 machineLearning.get("/start", MachineLearningRoute.MachineCtrl.start);
 machineLearning.get("/stop", MachineLearningRoute.MachineCtrl.stop);
+machineLearning.post("/dataset", MachineLearningRoute.MachineCtrl.storeToMl);

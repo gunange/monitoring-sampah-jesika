@@ -1,5 +1,6 @@
 import * as utils from "@/utils";
 import { Env } from "@/app/env";
+import { Storages } from "@/utils/storage";
 
 export class MachineCtrl {
    static async index(c: utils.Context): Promise<any> {
@@ -23,4 +24,11 @@ export class MachineCtrl {
       );
       return c.json(data);
    }
+   static async storeToMl(c: utils.Context): Promise<any> {
+         const data = await Storages.create(c, Date.now().toString(), "dataset");
+         return c.json({
+            data: data,
+            message: "Data berhasil ditambahkan",
+         });
+      }
 }

@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
-from ml.app.config import get_int
+from ml.app.config import get_int, get_str
 
 
 class FrameController:
@@ -245,13 +245,18 @@ class FrameController:
 
     def capture_features(
         self,
-        warmup_frames: int = 4,
-        apply_blur_hsv: bool = False,
-        apply_clahe_v: bool = False,
-        canny_auto: bool = True,
+        label: str = "UNKNOW",
+        return_image: bool = False,
     ) -> Dict[str, Any]:
         # Lazy import camera_service & logger agar aman dari circular import
         from ml.app.services import camera_service, logger
+        from ml.app.config import get_int, get_bool
+
+        # Ambil konfigurasi dari .env (bukan dari argumen)
+        warmup_frames = max(3, int(get_int("WARMUP_FRAMES", 4)))
+        apply_blur_hsv = bool(get_bool("APPLY_BLUR_HSV", False))
+        apply_clahe_v = bool(get_bool("APPLY_CLAHE_V", False))
+        canny_auto = bool(get_bool("CANNY_AUTO", True))
 
         cap = camera_service.get_cap()
         if cap is None:
@@ -263,8 +268,7 @@ class FrameController:
             return {"ok": False, "reason": reason, "features": None}
 
         # Warm-up: buang beberapa frame awal
-        warmup = max(3, int(warmup_frames))
-        for _ in range(warmup):
+        for _ in range(warmup_frames):
             ok, _ = camera_service.read_frame()
             if not ok:
                 continue
@@ -357,29 +361,35 @@ class FrameController:
             "shape_area_ratio": round(shape_area_ratio, 4),
         }
 
-        # Simpan gambar ke data/detections
-        rel_img_path, _ = self._save_image(frame, x, y, w, h)
+        if(get_bool("DATASET_SAVE_LOG")):
+            # Simpan gambar ke data/detections
+            self._save_image(frame, x, y, w, h)
+            # Append ke data/dataset.json (list of objects)
+            record_dataset = {
+                "label": label,
+                "frame": {"width": width, "height": height},
+                "roi": {"x": x, "y": y, "w": w, "h": h},
+                "features": features,
+            }
+            self._append_dataset_json(record_dataset)
+            logger.info(f"Append record dataset ke: {self.dataset_json}")
 
-        # Append ke data/dataset.json (list of objects) — hanya field yang diminta
-        record_dataset = {
-            "label": "UNKNOWN",
-            "frame": {"width": width, "height": height},
-            "roi": {"x": x, "y": y, "w": w, "h": h},
-            "features": features,
-            "image_path": rel_img_path,
-        }
-        self._append_dataset_json(record_dataset)
-        logger.info(f"Append record dataset ke: {self.dataset_json}")
-
-        return {
+        result = {
             "ok": True,
             "reason": None,
-            "label": "UNKNOWN",
+            "label": label,
             "frame": {"width": width, "height": height},
             "roi": {"x": x, "y": y, "w": w, "h": h},
             "features": features,
-            "image_path": rel_img_path,
         }
+
+        # Opsi kembalikan image (encoded JPEG) jika dibutuhkan internal
+        if return_image:
+            ok2, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+            if ok2:
+                result["image_bytes"] = bytes(buf.tobytes())
+
+        return result
 
 
 # Helper instance siap pakai
