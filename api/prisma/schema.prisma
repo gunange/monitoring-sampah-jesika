@@ -61,18 +61,50 @@ model Storage {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
+  Dataset    Dataset[] @relation("StorageDataset")
+
   @@map("__storage")
 }
 
 model Petugas {
   id         Int      @id @default(autoincrement())
   userId     Int      @unique
-  nip       String   
+  nip        String
   nama       String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Dataset    Dataset[] @relation("PetugasDataset")
 
   @@map("__petugas")
 }
+
+model Dataset {
+  id               Int      @id @default(autoincrement())
+  id_petugas       Int
+  uid_storage      String
+  label            String   @db.VarChar(150)
+  h_mean           Float
+  h_std            Float
+  s_mean           Float
+  s_std            Float
+  v_mean           Float
+  v_std            Float
+  laplacian_var    Float
+  edge_ratio       Float
+  shape_area_ratio Float
+  frame            Json
+  roi              Json
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  Petugas Petugas @relation("PetugasDataset", fields: [id_petugas], references: [id], onDelete: Cascade)
+  Storage Storage @relation("StorageDataset", fields: [uid_storage], references: [uid], onDelete: Cascade)
+
+  @@index([id_petugas], map: "__dataset_id_petugas_fkey")
+  @@index([uid_storage], map: "__dataset_uid_storage_fkey")
+  @@map("__dataset")
+}
+
+

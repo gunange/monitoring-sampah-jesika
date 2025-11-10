@@ -9,22 +9,13 @@ from ml.app.config import get_int
 
 
 class FrameController:
-    """
-    Controller untuk:
-    - Ambil current frame dari kamera (warm-up 3–5 frame).
-    - Tetapkan ROI optional.
-    - Ekstraksi fitur: HSV stats, laplacian_var, edge_ratio, shape_area_ratio.
-    - Validasi & sanitasi nilai.
-    - Simpan record JSON ke file harian di ml/data/.
-    """
-
     def __init__(self):
         # Lazy import untuk util agar aman dari circular import
         from ml.app.utils import ensure_dir
         from ml.app.config import get_str
 
         # Tetapkan root_dir = folder data (ml/data) dan pastikan ada
-        self.root_dir = Path(__file__).resolve().parents[1] / "data"
+        self.root_dir = Path(__file__).resolve().parents[1] / get_str("DETECT_SAVE_DIR", "data")
         ensure_dir(self.root_dir)
 
         # Folder penyimpanan gambar: root_dir/detections
