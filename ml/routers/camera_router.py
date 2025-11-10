@@ -1,3 +1,4 @@
+# function stream() and last_frame()
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from ml.app.services import logger, camera_service
@@ -54,21 +55,17 @@ def stream():
 
     cap = camera_service.get_cap()
     if cap is None:
-        camera_service.start()
-        cap = camera_service.get_cap()
-        if camera_service.get_cap() is None:
-            status = camera_service.get_status()
-            raise HTTPException(status_code=409, detail=f"Camera gagal start: {status.get('last_error')}")
+        status = camera_service.get_status()
+        raise HTTPException(status_code=404, detail=f"Camera belum siap: {status.get('last_error')}")
 
     fps = max(1, get_int("STREAM_FPS", 10))
     boundary = b"--frame\r\n"
     def gen():
         try:
             while True:
-                ok, frame = cap.read()
+                ok, frame = camera_service.read_frame()
                 if not ok or frame is None:
                     break
-                # kirim frame original tanpa resize
                 ok2, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
                 if not ok2:
                     continue
@@ -79,10 +76,8 @@ def stream():
                        b + b"\r\n")
                 time.sleep(1.0 / float(fps))
         finally:
-            try:
-                cap.release()
-            except Exception:
-                pass
+            # Lifecycle kamera dikelola oleh camera_service
+            pass
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
@@ -93,3 +88,28 @@ def stream():
         media_type="multipart/x-mixed-replace; boundary=frame",
         headers=headers,
     )
+
+@camera_router.get("/camera/last-frame")
+def last_frame():
+    from fastapi import HTTPException, Response
+    import cv2
+
+    cap = camera_service.get_cap()
+    if cap is None:
+        status = camera_service.get_status()
+        raise HTTPException(status_code=404, detail=f"Camera belum siap: {status.get('last_error')}")
+
+    ok, frame = camera_service.read_frame()
+    if not ok or frame is None:
+        raise HTTPException(status_code=409, detail="Gagal membaca frame terbaru.")
+
+    ok2, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+    if not ok2:
+        raise HTTPException(status_code=500, detail="Gagal encode frame.")
+
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Connection": "keep-alive",
+    }
+    return Response(content=buf.tobytes(), media_type="image/jpeg", headers=headers)

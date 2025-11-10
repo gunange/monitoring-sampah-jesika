@@ -253,7 +253,6 @@ class FrameController:
         # Lazy import camera_service & logger agar aman dari circular import
         from ml.app.services import camera_service, logger
 
-        # Pastikan kamera aktif
         cap = camera_service.get_cap()
         if cap is None:
             camera_service.start()
@@ -266,12 +265,12 @@ class FrameController:
         # Warm-up: buang beberapa frame awal
         warmup = max(3, int(warmup_frames))
         for _ in range(warmup):
-            ok, _ = cap.read()
+            ok, _ = camera_service.read_frame()
             if not ok:
                 continue
 
         # Ambil 1 frame terbaru
-        ok, frame = cap.read()
+        ok, frame = camera_service.read_frame()
         if not ok or frame is None:
             reason = "Gagal membaca frame dari kamera."
             logger.error(reason)

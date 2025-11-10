@@ -2,7 +2,6 @@ from fastapi import APIRouter
 
 machine_router = APIRouter()
 
-
 @machine_router.get("/machine-learning")
 def machine_learning():
     from ml.app.services import camera_service
@@ -30,13 +29,3 @@ def stop_machine_learning():
 
     return {"name": "Machine Learning", "running": False}
 
-
-@machine_router.get("/machine-learning/get-frame")
-def get_frame():
-    from fastapi import HTTPException
-    from ml.controllers.frame_controller import frame_controller
-
-    data = frame_controller.capture_features()
-    if not data.get("ok"):
-        raise HTTPException(status_code=409, detail=data.get("reason"))
-    return data

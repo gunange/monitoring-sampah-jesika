@@ -10,6 +10,11 @@ const menu = [
     route: `/${path_route}/home`,
   },
   {
+    label: "Dataset",
+    icon: "pi pi-chart-line",
+    route: `/${path_route}/dataset`,
+  },
+  {
     label: "Monitoring",
     icon: "pi pi-chart-line",
     route: `/${path_route}/monitoring`,

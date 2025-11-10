@@ -1,4 +1,4 @@
-import { dataEnv } from "@/components/dashboard/camat/config";
+import { dataEnv } from "@/components/dashboard/petugas/config";
 import { delay } from "@/controller/tools";
 import { reactive } from "vue";
 import { userStorage } from "../../store";
@@ -9,27 +9,17 @@ import {
    patch,
    post,
 } from "@/controller/others/RequestApiController";
-import { api } from "@/config/apiConfig";
-import { ApiResponse } from "@/controller/others/RequestApiController/interface";
-import { AxiosRequestConfig } from "axios";
-import { toastStore } from '@/stores/services/toast-store'
 
 export class Controller {
    get collection() {
-      return `${dataEnv.path_api}/surat-keluar`;
+      return `${dataEnv.path_api}/dataset`;
    }
    get time() {
       return new TimeApp();
    }
    get storage() {
-      return userStorage().surat_keluar;
+      return userStorage().dataset;
    }
-   get urlStorage() {
-      return api.url_storage;
-   }
-   get toast() {
-      return toastStore().toast
-    }
 }
 export class Cruds extends Controller {
    modal = reactive({
@@ -100,32 +90,9 @@ export class Cruds extends Controller {
          await this.reset();
       }
    }
-   async up_itemUpload(data: any, id: Number, status: Number) {
-      if (status === 201 || status === 200) {
-         const index = this.storage.data.findIndex(
-            (dataItem) => dataItem.id === id
-         );
-         if (index !== -1) {
-            this.storage.data.splice(index, 1, data);
-         }
-         await delay(800);
-         await this.reset();
-      }
-   }
    async add(body: any): Promise<void> {
       const { data, status } = await post(this.collection, body);
 
-      this.add_item(data, status);
-      this.modal.proses_form = false;
-   }
-   async addWithFile(body: any, config?: AxiosRequestConfig): Promise<void> {
-      const { data, status } = await post(
-         `${this.collection}`,
-         body,
-         true,
-         config
-      );
-      
       this.add_item(data, status);
       this.modal.proses_form = false;
    }
@@ -146,23 +113,14 @@ export class Cruds extends Controller {
       this.modal.proses_form = false;
    }
 
-   async upload(body: any, config?: AxiosRequestConfig): Promise<void> {
-      const { data, status } = await post(
-         `${this.collection}/lampiran/${this.uid}`,
-         body,
-         true,
-         config
+   async switchStatus(body: any): Promise<void> {
+      const { data, status } = await patch(
+         `${this.collection}/switch-status/${this.uid}`,
+         body
       );
 
-      const randomId = Math.random().toString(36).slice(2, 10);
-      data.lampiran = `${data.lampiran}/clear/${randomId}`;
-
-      this.up_itemUpload(data, this.uid, status);
+      this.up_item(data, this.uid, status);
       this.modal.proses_form = false;
-   }
-
-   async getFileInfo(uid): Promise<ApiResponse> {
-      return await get(`${api.url_storage}/${uid}/info`);
    }
 }
 export class MainData extends Controller {
@@ -175,7 +133,8 @@ export class MainData extends Controller {
          ? this.data.data.map((el) => {
               return {
                  ...el,
-                 tanggal_id: this.time.formatDate(el.tanggal),
+                 updated_at: this.time.formatDate(el.updated_at),
+                 created_at: this.time.formatDate(el.created_at),
               };
            })
          : [];

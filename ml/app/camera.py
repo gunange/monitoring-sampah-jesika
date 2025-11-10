@@ -1,7 +1,8 @@
+# imports (bagian atas file)
 import cv2
 from typing import Any
 from ml.app.config import get_str
-
+import threading
 
 BACKENDS = {
     "ANY": int(cv2.CAP_ANY),
@@ -65,32 +66,35 @@ class CameraController:
         self.cap = None
         self.status = {"open": False, "src": None, "backend": None, "last_error": None}
         self.running = False
+        self.lock = threading.RLock()
 
     def start(self) -> bool:
         from ml.app.services import logger
         
-        if self.cap and self.running:
-            return True    
-        src = parse_camera_src()
-        backend_name = get_str("CAMERA_BACKEND", "AVFOUNDATION")
-        cap = open_capture(src, backend_name, self.status, logger)
-        if cap is None:
-            self.cap = None
-            self.running = False
-            return False
-        self.cap = cap
-        self.running = True
-        return True
+        with self.lock:
+            if self.cap and self.running:
+                return True    
+            src = parse_camera_src()
+            backend_name = get_str("CAMERA_BACKEND", "AVFOUNDATION")
+            cap = open_capture(src, backend_name, self.status, logger)
+            if cap is None:
+                self.cap = None
+                self.running = False
+                return False
+            self.cap = cap
+            self.running = True
+            return True
 
     def stop(self) -> None:
-        self.running = False
-        try:
-            if self.cap:
-                self.cap.release()
-        except Exception:
-            pass
-        self.cap = None
-        self.status.update({"open": False})
+        with self.lock:
+            self.running = False
+            try:
+                if self.cap:
+                    self.cap.release()
+            except Exception:
+                pass
+            self.cap = None
+            self.status.update({"open": False})
 
     def get_cap(self):
         return self.cap if self.running and self.cap is not None else None
@@ -103,3 +107,10 @@ class CameraController:
             "backend": self.status.get("backend"),
             "last_error": self.status.get("last_error"),
         }
+
+    def read_frame(self):
+        with self.lock:
+            if not self.running or self.cap is None:
+                return False, None
+            ok, frame = self.cap.read()
+            return ok, frame
