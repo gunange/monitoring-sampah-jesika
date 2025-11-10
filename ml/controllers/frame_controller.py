@@ -11,16 +11,16 @@ from ml.app.config import get_int, get_str
 class FrameController:
     def __init__(self):
         # Lazy import untuk util agar aman dari circular import
-        from ml.app.utils import ensure_dir
+
         from ml.app.config import get_str
 
         # Tetapkan root_dir = folder data (ml/data) dan pastikan ada
-        self.root_dir = Path(__file__).resolve().parents[1] / get_str("DETECT_SAVE_DIR", "data")
-        ensure_dir(self.root_dir)
+        self.root_dir = Path(__file__).resolve().parents[1] / get_str(
+            "DETECT_SAVE_DIR", "data"
+        )
 
         # Folder penyimpanan gambar: root_dir/detections
         self.detections_dir = self.root_dir / "detections"
-        ensure_dir(self.detections_dir)
 
         # File dataset tunggal (list of objects): root_dir/dataset.json
         self.dataset_json = self.root_dir / "dataset.json"
@@ -45,7 +45,9 @@ class FrameController:
             return 0, 0, width, height
         return self._roi_bounds(width, height, (x, y, w, h))
 
-    def _roi_bounds(self, width: int, height: int, roi: Optional[Tuple[int, int, int, int]]) -> Tuple[int, int, int, int]:
+    def _roi_bounds(
+        self, width: int, height: int, roi: Optional[Tuple[int, int, int, int]]
+    ) -> Tuple[int, int, int, int]:
         """Clamp ROI ke dalam batas frame; jika ROI None atau invalid → full frame."""
         if not roi or len(roi) != 4:
             return 0, 0, width, height
@@ -66,7 +68,9 @@ class FrameController:
             return default
         return float(val)
 
-    def _hsv_stats(self, hsv: np.ndarray, mask: Optional[np.ndarray]) -> Dict[str, float]:
+    def _hsv_stats(
+        self, hsv: np.ndarray, mask: Optional[np.ndarray]
+    ) -> Dict[str, float]:
         """Hitung statistik HSV. H dihitung secara circular; S/V linear. H:0–179, S/V:0–255."""
         H, S, V = cv2.split(hsv)
 
@@ -77,9 +81,12 @@ class FrameController:
 
         if not np.any(valid):
             return {
-                "h_mean": 0.0, "h_std": 0.0,
-                "s_mean": 0.0, "s_std": 0.0,
-                "v_mean": 0.0, "v_std": 0.0,
+                "h_mean": 0.0,
+                "h_std": 0.0,
+                "s_mean": 0.0,
+                "s_std": 0.0,
+                "v_mean": 0.0,
+                "v_std": 0.0,
             }
 
         # Circular stats untuk H
@@ -97,7 +104,9 @@ class FrameController:
         # Resultant length
         R = float(np.sqrt(c_bar**2 + s_bar**2))
         # Circular std (radian)
-        std_theta = float(np.sqrt(max(0.0, -2.0 * np.log(max(R, 1e-12))))) if R > 0 else 0.0
+        std_theta = (
+            float(np.sqrt(max(0.0, -2.0 * np.log(max(R, 1e-12))))) if R > 0 else 0.0
+        )
         # Konversi kembali ke unit H (0..179)
         h_mean_circ = mean_theta / (np.pi / 90.0)
         h_std_circ = std_theta / (np.pi / 90.0)
@@ -175,7 +184,9 @@ class FrameController:
         opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel, iterations=1)
 
         # Kontur terbesar
-        contours, _ = cv2.findContours(opened, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            opened, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
         if not contours:
             return 0.0
         areas = [cv2.contourArea(c) for c in contours]
@@ -204,7 +215,9 @@ class FrameController:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return path
 
-    def _save_image(self, frame: np.ndarray, x: int, y: int, w: int, h: int) -> Tuple[str, Path]:
+    def _save_image(
+        self, frame: np.ndarray, x: int, y: int, w: int, h: int
+    ) -> Tuple[str, Path]:
         """
         Simpan gambar (full frame) ke root_dir/detections dan kembalikan:
         - rel_path: 'data/detections/<filename>.jpg'
@@ -285,7 +298,7 @@ class FrameController:
         # ROI: selalu ambil dari .env (hilangkan argumen ROI)
         x, y, w, h = self._get_default_roi(width, height)
 
-        roi_frame = frame[y:y + h, x:x + w]
+        roi_frame = frame[y : y + h, x : x + w]
 
         if roi_frame.size == 0:
             logger.warning("ROI keluar batas, fallback ke full frame.")
@@ -334,18 +347,20 @@ class FrameController:
             vv = sanitize(v)
             clamped = float(min(max(vv, lo), hi))
             if clamped != vv:
-                logger.warning(f"Clamp {name}: {vv} -> {clamped} dalam rentang [{lo}, {hi}]")
+                logger.warning(
+                    f"Clamp {name}: {vv} -> {clamped} dalam rentang [{lo}, {hi}]"
+                )
             return clamped
 
         # Clamp sesuai rentang
         h_mean = clamp_and_log("h_mean", hsv_stats["h_mean"], 0.0, 179.0)
-        h_std  = clamp_and_log("h_std",  hsv_stats["h_std"],  0.0, 179.0)
+        h_std = clamp_and_log("h_std", hsv_stats["h_std"], 0.0, 179.0)
         s_mean = clamp_and_log("s_mean", hsv_stats["s_mean"], 0.0, 255.0)
-        s_std  = clamp_and_log("s_std",  hsv_stats["s_std"],  0.0, 255.0)
+        s_std = clamp_and_log("s_std", hsv_stats["s_std"], 0.0, 255.0)
         v_mean = clamp_and_log("v_mean", hsv_stats["v_mean"], 0.0, 255.0)
-        v_std  = clamp_and_log("v_std",  hsv_stats["v_std"],  0.0, 255.0)
-        laplacian_var   = sanitize(lap_var)
-        edge_ratio      = clamp_and_log("edge_ratio", e_ratio, 0.0, 1.0)
+        v_std = clamp_and_log("v_std", hsv_stats["v_std"], 0.0, 255.0)
+        laplacian_var = sanitize(lap_var)
+        edge_ratio = clamp_and_log("edge_ratio", e_ratio, 0.0, 1.0)
         shape_area_ratio = clamp_and_log("shape_area_ratio", s_area_ratio, 0.0, 1.0)
 
         # Fitur KNN (tanpa width/height)
@@ -361,7 +376,13 @@ class FrameController:
             "shape_area_ratio": round(shape_area_ratio, 4),
         }
 
-        if(get_bool("DATASET_SAVE_LOG")):
+        if get_bool("DATASET_SAVE_LOG"):
+            from ml.app.utils import ensure_dir
+
+            # Pastikan direktori tersedia hanya saat akan dipakai
+            ensure_dir(self.root_dir)
+            ensure_dir(self.detections_dir)
+
             # Simpan gambar ke data/detections
             self._save_image(frame, x, y, w, h)
             # Append ke data/dataset.json (list of objects)
