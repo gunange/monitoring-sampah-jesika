@@ -1,12 +1,16 @@
 <template>
 	<div class="card relative p-3 text-center py-5">
-		<p class="mb-3 text-primary">Machine Learning</p>
-		<i class="pi pi-microchip-ai text-[120px] text-gray-400" />
-		<p
-			class="mt-3 font-bold"
-			:class="{ 'text-pink-500': !machineRunning, 'text-green-500': machineRunning }"
-		>
-			Status : {{ machineRunning  ? 'Running' : 'Off'}}
+		<p class="mb-3 text-primary font-bold">Machine Learning</p>
+		<i class="pi pi-microchip-ai text-[120px] text-gray-400 mb-3" />
+		<p class="mt-3 text-sm">
+			<span>Status </span>
+			<span
+				:class="{
+					'text-pink-500': !machineRunning,
+					'text-green-500': machineRunning,
+				}"
+				>{{ machineRunning ? "RUNNING" : "STOPPED" }}</span
+			>
 		</p>
 
 		<!-- Tombol Play/Pause posisi absolut pojok kanan bawah -->
