@@ -13,8 +13,7 @@
 	/* ----- machine-learning ----- */
 	const imgVersion = ref("0");
 	const running = ref(false);
-	const pathMl = `${api.url_api}machine-learning`
-
+	const pathMl = `${api.url_api}machine-learning`;
 
 	/* ----- computed ----- */
 	const urlMlStream = computed(
@@ -27,10 +26,11 @@
 		main.modal.label = "Add Dataset";
 		form.value = {};
 
-		await main.open(act);
-		ref_form.value.resetForm();
 		await checkMl();
+		await main.open(act);
+		if(!running.value) return;
 		refreshStream();
+		ref_form.value.resetForm();
 
 		if (act == "up") {
 			main.setUid(uid);
@@ -86,22 +86,24 @@
 					<span>{{ modal.label }}</span>
 				</h6>
 			</template>
+			<div class="text-center" v-if="!running">
+				<div class="mt-2 text-xs text-gray-500">
+					Status Machine Learning: <b>{{ running ? "RUNNING" : "STOPPED" }}</b>
+				</div>
+			</div>
 
-			<VeeForm @submit="onSave" :initial-values="form" ref="ref_form">
+			<VeeForm @submit="onSave" :initial-values="form" ref="ref_form" v-else>
 				<div class="text-xs grid grid-cols-1 gap-4">
 					<img
 						:key="imgVersion"
 						:src="urlMlStream"
 						alt="Live Stream"
 						class="w-full rounded-sm"
-						v-if="running"
 					/>
-					<div class="mt-2 text-xs text-gray-500" v-else>
-						Status Machine Learning: <b>{{ running ? "RUNNING" : "STOPPED" }}</b>
-					</div>
+
 					<div class="form">
 						<VeeField
-							v-slot="{  }"
+							v-slot="{}"
 							name="label"
 							rules="required"
 							v-model="form.label"
@@ -120,14 +122,12 @@
 							/>
 						</VeeField>
 					</div>
-
-					
 				</div>
 
 				<button type="submit" class="hidden" ref="refBtnAddAndUp">submit</button>
 			</VeeForm>
 			<template #footer>
-				<div class="flex justify-end">
+				<div class="flex justify-end" v-if="running">
 					<Button
 						type="button"
 						label="Save"

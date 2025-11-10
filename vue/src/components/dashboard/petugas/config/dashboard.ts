@@ -16,7 +16,7 @@ const menu = [
   },
   {
     label: "Monitoring",
-    icon: "pi pi-chart-line",
+    icon: "pi pi-camera",
     route: `/${path_route}/monitoring`,
   },
 ];
