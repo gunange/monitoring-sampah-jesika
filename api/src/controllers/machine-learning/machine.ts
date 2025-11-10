@@ -1,6 +1,8 @@
 import * as utils from "@/utils";
 import { Env } from "@/app/env";
 import { Storages } from "@/utils/storage";
+import { DatasetValidate } from "@/validators/DatasetValidate";
+import { UsersRepo } from "@/repositories";
 
 export class MachineCtrl {
    static async index(c: utils.Context): Promise<any> {
@@ -25,9 +27,12 @@ export class MachineCtrl {
       return c.json(data);
    }
    static async storeToMl(c: utils.Context): Promise<any> {
-         const data = await Storages.create(c, Date.now().toString(), "dataset");
+         const storage = await Storages.create(c, Date.now().toString(), "dataset");
+         const data = await DatasetValidate.storeFormMl(c);
+         data.storage_uid = storage.uid;
+
          return c.json({
-            data: data,
+            data: await utils.dbClient.dataset.create({data}),
             message: "Data berhasil ditambahkan",
          });
       }

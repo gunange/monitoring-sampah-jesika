@@ -119,6 +119,7 @@
 								placeholder="Pilih Label"
 								v-model="form.label"
 								:options="['Aman', 'Tidak Bersih', 'Sampah Menumpuk']"
+								:appendToBody="true"
 							/>
 						</VeeField>
 					</div>

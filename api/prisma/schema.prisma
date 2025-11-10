@@ -52,8 +52,7 @@ model PersonalAksesToken {
 }
 
 model Storage {
-  id         Int      @id @default(autoincrement())
-  uid        String   @unique
+  uid        String   @id @default(cuid())
   name       String
   path       String
   mime_type  String
@@ -61,7 +60,7 @@ model Storage {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  Dataset    Dataset[] @relation("StorageDataset")
+  Dataset Dataset[] @relation("StorageDataset")
 
   @@map("__storage")
 }
@@ -74,16 +73,14 @@ model Petugas {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Dataset    Dataset[] @relation("PetugasDataset")
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("__petugas")
 }
 
 model Dataset {
   id               Int      @id @default(autoincrement())
-  id_petugas       Int
-  uid_storage      String
+  storage_uid      String
   label            String   @db.VarChar(150)
   h_mean           Float
   h_std            Float
@@ -99,12 +96,8 @@ model Dataset {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
-  Petugas Petugas @relation("PetugasDataset", fields: [id_petugas], references: [id], onDelete: Cascade)
-  Storage Storage @relation("StorageDataset", fields: [uid_storage], references: [uid], onDelete: Cascade)
+  Storage Storage @relation("StorageDataset", fields: [storage_uid], references: [uid], onDelete: Cascade)
 
-  @@index([id_petugas], map: "__dataset_id_petugas_fkey")
-  @@index([uid_storage], map: "__dataset_uid_storage_fkey")
+  @@index([storage_uid], map: "__dataset_uid_storage_fkey")
   @@map("__dataset")
 }
-
-
