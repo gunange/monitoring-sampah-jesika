@@ -36,7 +36,7 @@ def get_frame():
     from fastapi import HTTPException
     from ml.controllers.frame_controller import frame_controller
 
-    data = frame_controller.capture_features(roi=None, save_record=True)
+    data = frame_controller.capture_features()
     if not data.get("ok"):
         raise HTTPException(status_code=409, detail=data.get("reason"))
     return data

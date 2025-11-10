@@ -254,7 +254,6 @@ class FrameController:
 
     def capture_features(
         self,
-        roi: Optional[Tuple[int, int, int, int]] = None,
         warmup_frames: int = 4,
         apply_blur_hsv: bool = False,
         apply_clahe_v: bool = False,
@@ -289,11 +288,8 @@ class FrameController:
 
         height, width = frame.shape[:2]
 
-        # ROI: jika tidak diberikan, ambil dari .env
-        if roi is None:
-            x, y, w, h = self._get_default_roi(width, height)
-        else:
-            x, y, w, h = self._roi_bounds(width, height, roi)
+        # ROI: selalu ambil dari .env (hilangkan argumen ROI)
+        x, y, w, h = self._get_default_roi(width, height)
 
         roi_frame = frame[y:y + h, x:x + w]
 
