@@ -1,8 +1,6 @@
 # deps
 node_modules/
-app/__pycache__
-routers/__pycache__
-controllers/__pycache__
+__pycache__
 data/raw
 data/detections
 data/dataset.json

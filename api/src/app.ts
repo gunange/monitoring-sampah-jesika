@@ -19,6 +19,7 @@ app.route("/publics", Route.publics);
 app.route("/user", Route.user);
 app.route("/admin", Route.admin);
 app.route("/petugas", Route.petugas);
+app.route("/machine-learning", Route.machineLearning);
 
 // Handler 404
 app.notFound((c) =>

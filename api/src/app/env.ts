@@ -32,4 +32,10 @@ export class Env {
    static get hostname() {
       return Bun.env["HOST"];
    }
+   static get ml_hostname() {
+      return Bun.env["ML_HOST"];
+   }
+   static get ml_port() {
+      return Number(Bun.env["ML_PORT"]);
+   }
 }

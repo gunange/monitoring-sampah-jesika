@@ -9,10 +9,8 @@
         :items="[{ label: 'Library', route: `/${pathRoute}` }]"
       />
     </div>
-    <div class="px-5 mt-5">
-      <div class="card p-3 text-center">
-        <p>Main View</p>
-      </div>
+    <div class="px-5 mt-5 grid min-sm:grid-cols-3 gap-4">
+      <MlComp />
     </div>
   </div>
 </template>
@@ -21,10 +19,13 @@
 import BradcumpWidget from '@/widgets/others/bardcump-widget.vue'
 import { dataEnv } from '@/components/dashboard/admin/config/index.ts'
 
+import MlComp from '@/components/dashboard/admin/components/ml-view.vue'
+
 export default {
   name: 'MainView',
   components: {
     BradcumpWidget,
+    MlComp,
   },
   computed: {
     pathRoute() {
