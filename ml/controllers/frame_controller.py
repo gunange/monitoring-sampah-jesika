@@ -34,6 +34,16 @@ class FrameController:
         # File dataset tunggal (list of objects): root_dir/dataset.json
         self.dataset_json = self.root_dir / "dataset.json"
 
+        # Versi pipeline untuk tracking
+        self.preprocess_version = 1
+        self.feature_version = 1
+
+        # Default parameter preprocessing
+        self.clahe_clip_limit = 2.0
+        self.clahe_tile_grid = (8, 8)
+        self.gaussian_kernel = (3, 3)
+        self.canny_default = (50, 150)
+
     def _get_default_roi(self, width: int, height: int) -> Tuple[int, int, int, int]:
         """Ambil ROI default dari .env; jika w/h <= 0 → full frame."""
         x = get_int("ROI_X", 0)
@@ -66,7 +76,7 @@ class FrameController:
         return float(val)
 
     def _hsv_stats(self, hsv: np.ndarray, mask: Optional[np.ndarray]) -> Dict[str, float]:
-        """Hitung mean & std untuk H,S,V dengan mask (exclude V<10). Skala HSV OpenCV: H:0–179, S/V:0–255."""
+        """Hitung statistik HSV. H dihitung secara circular; S/V linear. H:0–179, S/V:0–255."""
         H, S, V = cv2.split(hsv)
 
         if mask is None:
@@ -74,7 +84,6 @@ class FrameController:
         else:
             valid = (mask.astype(bool)) & (V >= 10)
 
-        # Jika semua invalid, kembalikan nol
         if not np.any(valid):
             return {
                 "h_mean": 0.0, "h_std": 0.0,
@@ -82,17 +91,42 @@ class FrameController:
                 "v_mean": 0.0, "v_std": 0.0,
             }
 
-        h = H[valid].astype(np.float64)
-        s = S[valid].astype(np.float64)
-        v = V[valid].astype(np.float64)
+        # Circular stats untuk H
+        h_vals = H[valid].astype(np.float64)
+        # Konversi ke radian: 0..179 → 0..2π (tiap unit = 2°)
+        theta = h_vals * (np.pi / 90.0)
+        c = np.cos(theta)
+        s = np.sin(theta)
+        c_bar = np.mean(c)
+        s_bar = np.mean(s)
+        # Mean arah
+        mean_theta = float(np.arctan2(s_bar, c_bar))
+        if mean_theta < 0:
+            mean_theta += 2 * np.pi
+        # Resultant length
+        R = float(np.sqrt(c_bar**2 + s_bar**2))
+        # Circular std (radian)
+        std_theta = float(np.sqrt(max(0.0, -2.0 * np.log(max(R, 1e-12))))) if R > 0 else 0.0
+        # Konversi kembali ke unit H (0..179)
+        h_mean_circ = mean_theta / (np.pi / 90.0)
+        h_std_circ = std_theta / (np.pi / 90.0)
+
+        # Linear stats untuk S, V
+        s_vals = S[valid].astype(np.float64)
+        v_vals = V[valid].astype(np.float64)
+
+        s_mean = float(np.mean(s_vals))
+        s_std = float(np.std(s_vals, ddof=1) if s_vals.size > 1 else 0.0)
+        v_mean = float(np.mean(v_vals))
+        v_std = float(np.std(v_vals, ddof=1) if v_vals.size > 1 else 0.0)
 
         return {
-            "h_mean": float(np.mean(h)),
-            "h_std": float(np.std(h, ddof=1) if h.size > 1 else 0.0),
-            "s_mean": float(np.mean(s)),
-            "s_std": float(np.std(s, ddof=1) if s.size > 1 else 0.0),
-            "v_mean": float(np.mean(v)),
-            "v_std": float(np.std(v, ddof=1) if v.size > 1 else 0.0),
+            "h_mean": float(h_mean_circ),
+            "h_std": float(h_std_circ),
+            "s_mean": s_mean,
+            "s_std": s_std,
+            "v_mean": v_mean,
+            "v_std": v_std,
         }
 
     def _laplacian_var(self, gray_roi: np.ndarray) -> float:
@@ -225,7 +259,6 @@ class FrameController:
         apply_blur_hsv: bool = False,
         apply_clahe_v: bool = False,
         canny_auto: bool = True,
-        save_record: bool = True,
     ) -> Dict[str, Any]:
         # Lazy import camera_service & logger agar aman dari circular import
         from ml.app.services import camera_service, logger
@@ -273,30 +306,60 @@ class FrameController:
         bgr_roi = roi_frame
         hsv_roi = cv2.cvtColor(bgr_roi, cv2.COLOR_BGR2HSV)
         if apply_blur_hsv:
-            hsv_roi = cv2.GaussianBlur(hsv_roi, (3, 3), 0)
+            hsv_roi = cv2.GaussianBlur(hsv_roi, self.gaussian_kernel, 0)
 
         hsv_stats = self._hsv_stats(hsv_roi, mask=None)
-        gray_roi = cv2.cvtColor(bgr_roi, cv2.COLOR_BGR2GRAY)
-        lap_var = self._laplacian_var(gray_roi)
-        e_ratio = self._edge_ratio(gray_roi, auto=canny_auto)
+
+        # Grayscale untuk Laplacian (proses di float64, var pada |lap|)
+        gray_roi_u8 = cv2.cvtColor(bgr_roi, cv2.COLOR_BGR2GRAY)
+        gray_roi = gray_roi_u8.astype(np.float64)
+        gray_blur = cv2.GaussianBlur(gray_roi, self.gaussian_kernel, 0)
+        lap = cv2.Laplacian(gray_blur, cv2.CV_64F)
+        lap_var = float(np.var(np.abs(lap)))
+
+        # Edge ratio dan ambang Canny (rekam T1/T2)
+        g = cv2.GaussianBlur(gray_roi_u8, self.gaussian_kernel, 0)
+        if canny_auto:
+            t1, t2 = self._canny_thresholds(g)
+        else:
+            t1, t2 = self.canny_default
+        edges = cv2.Canny(g, t1, t2)
+        E = int(np.count_nonzero(edges == 255))
+        N = int(edges.size)
+        e_ratio = float(E) / float(N) if N > 0 else 0.0
+
+        # Shape area ratio via Otsu di V + morfologi
         s_area_ratio = self._shape_area_ratio_v(hsv_roi, use_clahe=apply_clahe_v)
 
-        def clamp(v: float, lo: float, hi: float) -> float:
-            return float(min(max(v, lo), hi))
+        def sanitize(v: float, default: float = 0.0) -> float:
+            try:
+                vv = float(v)
+                if math.isnan(vv) or math.isinf(vv):
+                    return default
+                return vv
+            except Exception:
+                return default
 
-        h_mean = clamp(self._sanitize_float(hsv_stats["h_mean"]), 0.0, 179.0)
-        h_std  = clamp(self._sanitize_float(hsv_stats["h_std"]),  0.0, 179.0)
-        s_mean = clamp(self._sanitize_float(hsv_stats["s_mean"]), 0.0, 255.0)
-        s_std  = clamp(self._sanitize_float(hsv_stats["s_std"]),  0.0, 255.0)
-        v_mean = clamp(self._sanitize_float(hsv_stats["v_mean"]), 0.0, 255.0)
-        v_std  = clamp(self._sanitize_float(hsv_stats["v_std"]),  0.0, 255.0)
-        laplacian_var = self._sanitize_float(lap_var)
-        edge_ratio     = clamp(self._sanitize_float(e_ratio), 0.0, 1.0)
-        shape_area_ratio = clamp(self._sanitize_float(s_area_ratio), 0.0, 1.0)
+        def clamp_and_log(name: str, v: float, lo: float, hi: float) -> float:
+            vv = sanitize(v)
+            clamped = float(min(max(vv, lo), hi))
+            if clamped != vv:
+                logger.warning(f"Clamp {name}: {vv} -> {clamped} dalam rentang [{lo}, {hi}]")
+            return clamped
 
+        # Clamp sesuai rentang
+        h_mean = clamp_and_log("h_mean", hsv_stats["h_mean"], 0.0, 179.0)
+        h_std  = clamp_and_log("h_std",  hsv_stats["h_std"],  0.0, 179.0)
+        s_mean = clamp_and_log("s_mean", hsv_stats["s_mean"], 0.0, 255.0)
+        s_std  = clamp_and_log("s_std",  hsv_stats["s_std"],  0.0, 255.0)
+        v_mean = clamp_and_log("v_mean", hsv_stats["v_mean"], 0.0, 255.0)
+        v_std  = clamp_and_log("v_std",  hsv_stats["v_std"],  0.0, 255.0)
+        laplacian_var   = sanitize(lap_var)
+        edge_ratio      = clamp_and_log("edge_ratio", e_ratio, 0.0, 1.0)
+        shape_area_ratio = clamp_and_log("shape_area_ratio", s_area_ratio, 0.0, 1.0)
+
+        # Fitur KNN (tanpa width/height)
         features = {
-            "width": int(w),
-            "height": int(h),
             "h_mean": round(h_mean, 4),
             "h_std": round(h_std, 4),
             "s_mean": round(s_mean, 4),
@@ -311,23 +374,21 @@ class FrameController:
         # Simpan gambar ke data/detections
         rel_img_path, _ = self._save_image(frame, x, y, w, h)
 
-        # Append ke data/dataset.json (list of objects)
+        # Append ke data/dataset.json (list of objects) — hanya field yang diminta
         record_dataset = {
-            "path": rel_img_path,
-            "label": "Unknow aja krna nanti baru diisi",
-            "ts": datetime.now().isoformat(),
+            "label": "UNKNOWN",
             "frame": {"width": width, "height": height},
             "roi": {"x": x, "y": y, "w": w, "h": h},
             "features": features,
+            "image_path": rel_img_path,
         }
         self._append_dataset_json(record_dataset)
         logger.info(f"Append record dataset ke: {self.dataset_json}")
 
-        # Hapus pemakaian log harian: tidak lagi menulis ke ml/data/logs/dataset-YYYY-MM-DD.json
-
         return {
             "ok": True,
             "reason": None,
+            "label": "UNKNOWN",
             "frame": {"width": width, "height": height},
             "roi": {"x": x, "y": y, "w": w, "h": h},
             "features": features,
