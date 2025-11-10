@@ -3,8 +3,6 @@ import * as Middleware from "@/middleware";
 import { PetugasRoute } from "@/controllers/petugas";
 import { UserService } from "@/services/UserService";
 import { PetugasResponse } from "@/response/PetugasResponse";
-import { admin } from "./admin";
-
 export const petugas = new Hono();
 
 const userServiceStore = UserService.petugas.store;
