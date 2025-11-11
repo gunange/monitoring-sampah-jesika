@@ -411,7 +411,3 @@ class FrameController:
                 result["image_bytes"] = bytes(buf.tobytes())
 
         return result
-
-
-# Helper instance siap pakai
-frame_controller = FrameController()

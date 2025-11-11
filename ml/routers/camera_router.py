@@ -1,7 +1,7 @@
 # function stream() and last_frame()
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from ml.app.services import logger, camera_service
+from ml.app.services import camera_service
 
 camera_router = APIRouter()
 
@@ -20,7 +20,7 @@ def camera_list():
     cameras = []
     for idx in range(max_scan):
         status = {}
-        cap = open_capture(idx, backend, status, logger)
+        cap = open_capture(idx, backend, status)
         if cap:
             try:
                 cap.release()

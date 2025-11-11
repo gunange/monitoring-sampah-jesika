@@ -27,13 +27,27 @@ export class MachineCtrl {
       return c.json(data);
    }
    static async storeToMl(c: utils.Context): Promise<any> {
-         const storage = await Storages.create(c, Date.now().toString(), "dataset");
-         const data = await DatasetValidate.storeFormMl(c);
-         data.storage_uid = storage.uid;
+      const storage = await Storages.create(
+         c,
+         Date.now().toString(),
+         "dataset"
+      );
+      const data = await DatasetValidate.storeFormMl(c);
+      data.storage_uid = storage.uid;
 
-         return c.json({
-            data: await utils.dbClient.dataset.create({data}),
-            message: "Data berhasil ditambahkan",
-         });
-      }
+      return c.json({
+         data: await utils.dbClient.dataset.create({ data }),
+         message: "Data berhasil ditambahkan",
+      });
+   }
+
+   static async dataset(c: utils.Context): Promise<any> {
+      return c.json({
+         data: await utils.dbClient.dataset.findMany({
+            orderBy: {
+               id: "desc",
+            },
+         }),
+      });
+   }
 }

@@ -13,4 +13,4 @@ def _add(
     # Helper instance siap pakai
     dataset_controller = DatasetController()
 
-    return dataset_controller.store(label)
+    return dataset_controller.storeToDb(label)

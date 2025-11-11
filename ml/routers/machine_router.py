@@ -15,16 +15,18 @@ def machine_learning():
 
 @machine_router.get("/machine-learning/start")
 def start_machine_learning():
-    from ml.app.services import camera_service
+    from ml.app.services import camera_service, dataset_controller
 
+    dataset_controller.initSetDataFromDb()
     camera_service.start()
 
     return {"name": "Machine Learning", "running": True}
 
 @machine_router.get("/machine-learning/stop")
 def stop_machine_learning():
-    from ml.app.services import camera_service
+    from ml.app.services import camera_service, dataset_controller
 
+    dataset_controller.dataset = []
     camera_service.stop()
 
     return {"name": "Machine Learning", "running": False}

@@ -4,9 +4,10 @@ from typing import Dict, Any
 # class DatasetController:
 class DatasetController:
     def __init__(self):
+        self.dataset = []
         pass
 
-    def store(self, label: str) -> Dict[str, Any]:
+    def storeToDb(self, label: str) -> Dict[str, Any]:
         from fastapi import HTTPException
         import json
         from ml.controllers.frame_controller import frame_controller
@@ -68,3 +69,20 @@ class DatasetController:
             return (resp.json())["data"]
         except Exception:
             return {"statusCode": resp.status_code, "body": resp.text}
+
+    def initSetDataFromDb(self):
+        from ml.lib.api_request_lib import get
+        from ml.app.logging import logger
+
+        api_path = "machine-learning/dataset"
+
+        resp = get(api_path)
+        # Sederhana: jika tidak sukses, lempar HTTPException dan biarkan handler global yang log
+        
+        if (200 == resp.status_code):
+            # Jika upstream mengembalikan JSON dengan "error", pakai itu; fallback ke text
+            self.dataset = resp.json()
+            logger.debug("Dataset diinisialisasi dari DB, jumlah=%d", len(self.dataset))
+            logger.debug("Isi dataset: %s", self.dataset)
+
+
