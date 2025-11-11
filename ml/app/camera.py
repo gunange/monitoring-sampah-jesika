@@ -133,7 +133,6 @@ class CameraController:
     def read_frame(self):
         with self.lock:
             if not self.running or self.cap is None:
-                logger.info("read_frame: kamera belum berjalan atau cap None")
                 return False, None
             ok, frame = self.cap.read()
             if not ok:

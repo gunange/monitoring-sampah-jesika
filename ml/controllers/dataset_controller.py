@@ -81,8 +81,7 @@ class DatasetController:
         
         if (200 == resp.status_code):
             # Jika upstream mengembalikan JSON dengan "error", pakai itu; fallback ke text
-            self.dataset = resp.json()
-            logger.debug("Dataset diinisialisasi dari DB, jumlah=%d", len(self.dataset))
-            logger.debug("Isi dataset: %s", self.dataset)
+            self.dataset = resp.json().get("data", [])
+            logger.info("Dataset diinisialisasi dari DB, jumlah=%d", len(self.dataset))
 
 
