@@ -45,6 +45,7 @@ def get_logger(name: Optional[str] = "ml") -> logging.Logger:
     use_error = get_bool("LOG_ERROR", False)
     use_info = get_bool("LOG_INFO", False)
     use_debug = get_bool("LOG_DEBUG", False)
+    use_warning = get_bool("LOG_WARNING", False) or get_bool("LOG_WARING", False)  # dukung keduanya
 
     # --- error.log: hanya ERROR/CRITICAL jika diaktifkan ---
     has_error_file = any(
@@ -98,6 +99,24 @@ def get_logger(name: Optional[str] = "ml") -> logging.Logger:
         dbg_handler.addFilter(ExactLevelFilter(logging.DEBUG))  # hanya level DEBUG
         dbg_handler.setFormatter(fmt)
         logger.addHandler(dbg_handler)
+
+    # --- warning.log: hanya WARNING jika diaktifkan ---
+    has_warning_file = any(
+        isinstance(h, TimedRotatingFileHandler) and getattr(h, "baseFilename", "").endswith("warning.log")
+        for h in logger.handlers
+    )
+    if use_warning and not has_warning_file:
+        warn_handler = TimedRotatingFileHandler(
+            (LOG_DIR / "warning.log"),
+            when="midnight",
+            backupCount=14,
+            encoding="utf-8",
+            utc=False,
+        )
+        warn_handler.setLevel(logging.WARNING)
+        warn_handler.addFilter(ExactLevelFilter(logging.WARNING))  # hanya level WARNING
+        warn_handler.setFormatter(fmt)
+        logger.addHandler(warn_handler)
 
     # Tidak ada console handler; semuanya dikendalikan oleh flag di atas
     return logger

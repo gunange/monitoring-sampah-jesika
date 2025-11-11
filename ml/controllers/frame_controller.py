@@ -224,7 +224,7 @@ class FrameController:
         - full_path: Path absolut ke file yang disimpan
         """
         # Lazy import logger saat diperlukan
-        from ml.app.services import logger
+        from ml.app.logging import logger
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         filename = f"{ts}.jpg"
@@ -262,7 +262,8 @@ class FrameController:
         return_image: bool = False,
     ) -> Dict[str, Any]:
         # Lazy import camera_controller & logger agar aman dari circular import
-        from ml.app.services import camera_controller, logger
+        from ml.services.main_service import camera_controller
+        from ml.app.logging import logger
         from ml.app.config import get_int, get_bool
 
         # Ambil konfigurasi dari .env (bukan dari argumen)

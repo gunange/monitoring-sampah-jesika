@@ -75,7 +75,7 @@ class KNNService:
         self.encoder = joblib.load(path_encoder)
 
     async def _loop(self):
-        from ml.controllers.frame_controller import frame_controller
+        from ml.services.main_service import frame_controller
 
         while self._running:
             try:
@@ -88,9 +88,10 @@ class KNNService:
                     self.last_pred = pred
                     if self._on_result:
                         self._on_result(pred, result)
+                else:
+                    logger.warning("Capture not ok: %s", result.get("reason"))
             except Exception as e:
-                logger.error("KNN loop error:", e)
-
+                logger.error("KNN loop error: %s", e)
             await asyncio.sleep(self._interval)
 
     def start(self, on_result: Optional[Callable[[str, Dict[str, Any]], None]] = None):
@@ -99,11 +100,13 @@ class KNNService:
         if self.pipeline is None:
             raise RuntimeError("Model belum dilatih. Panggil fit_from_records() dulu.")
         if self._running:
+            logger.info("KNN service already running; start ignored")
             return
         self._interval = get_int("MACHINE_INTERVAL", 2)
         self._on_result = on_result
         self._running = True
         self._task = asyncio.create_task(self._loop())
+        logger.debug("KNN task created: %s", self._task)
 
     async def stop(self):
         self._running = False
@@ -114,3 +117,4 @@ class KNNService:
             except:
                 pass
             self._task = None
+            logger.info("KNN service stopped")
