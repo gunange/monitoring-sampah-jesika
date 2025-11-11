@@ -3,6 +3,7 @@ from ml.controllers.dataset_controller import DatasetController
 from ml.controllers.mahine_learning_controller import MachineLearningController
 
 from ml.controllers.camera_controller import CameraController
+from .knn_service import KNNService
 
 FEATURE_COLS = [
     "h_mean",
@@ -16,8 +17,11 @@ FEATURE_COLS = [
     "shape_area_ratio",
 ]
 
-# Singleton Service
+# Singleton Controller
 camera_controller = CameraController()
 frame_controller = FrameController()
 dataset_controller = DatasetController()
 machine_learning_controller = MachineLearningController()
+
+# Singleton Controller
+knn_service = KNNService()
