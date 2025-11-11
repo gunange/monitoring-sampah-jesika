@@ -59,25 +59,28 @@ class DatasetController:
             # Kirim ke API; HeandleRequest.parse akan baca body.form lalu JSON.parse
             resp = api_post(api_path, data={"form": json.dumps(payload)}, files=files)
 
-            # Tangani respons success/error
-            if 200 <= resp.status_code < 300:
-                try:
-                    return resp.json()
-                except Exception:
-                    return {"statusCode": resp.status_code, "body": resp.text}
-
             try:
-                detail = resp.json()
+                # Tangani respons success/error
+                if 200 <= resp.status_code < 300:
+                    try:
+                        return (resp.json())["data"]
+                    except Exception:
+                        return {"statusCode": resp.status_code, "body": resp.text}
             except Exception:
                 detail = {"error": resp.text}
             logger.error(
                 "Upstream API error %s pada path %s, label=%s, detail=%s",
-                resp.status_code, api_path, label, detail,
+                resp.status_code,
+                api_path,
+                label,
+                detail,
             )
             raise HTTPException(status_code=resp.status_code, detail=detail)
 
         except Exception as e:
-            logger.exception("DatasetController.store exception saat POST ke %s", api_path)
+            logger.exception(
+                "DatasetController.store exception saat POST ke %s", api_path
+            )
             raise HTTPException(
                 status_code=502,
                 detail={"error": "Failed to post dataset to API", "reason": str(e)},
