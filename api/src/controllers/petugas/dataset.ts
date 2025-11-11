@@ -1,5 +1,6 @@
 import { Env } from "@/app/env";
 import * as utils from "@/utils";
+import { Storages } from "@/utils/storage";
 import { DatasetValidate } from "@/validators/DatasetValidate";
 
 export class DatasetCtrl {
@@ -25,8 +26,16 @@ export class DatasetCtrl {
    }
 
    static async destroy(c: utils.Context): Promise<any> {
+      const data = await utils.dbClient.dataset.delete({
+         where: {
+            id :  Number(c.req.param("id")),
+         }
+      }).then(async (res) => {
+         await Storages.destroy(res.storage_uid);
+         return res;
+      });
       return c.json({
-         data: "OK",
+         data: data,
          message: "Data berhasil dihapus",
       });
    }

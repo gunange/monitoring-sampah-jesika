@@ -60,8 +60,6 @@ model Storage {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  Dataset Dataset[] @relation("StorageDataset")
-
   @@map("__storage")
 }
 
@@ -96,8 +94,5 @@ model Dataset {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
-  Storage Storage @relation("StorageDataset", fields: [storage_uid], references: [uid], onDelete: Cascade)
-
-  @@index([storage_uid], map: "__dataset_uid_storage_fkey")
   @@map("__dataset")
 }
