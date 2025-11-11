@@ -9,6 +9,8 @@ import {
    patch,
    post,
 } from "@/controller/others/RequestApiController";
+import { ApiResponse } from "@/controller/others/RequestApiController/interface";
+import { api } from "@/config/apiConfig";
 
 export class Controller {
    get collection() {
@@ -19,6 +21,9 @@ export class Controller {
    }
    get storage() {
       return userStorage().dataset;
+   }
+   get urlStorage() {
+      return api.url_storage;
    }
 }
 export class Cruds extends Controller {
@@ -113,14 +118,8 @@ export class Cruds extends Controller {
       this.modal.proses_form = false;
    }
 
-   async switchStatus(body: any): Promise<void> {
-      const { data, status } = await patch(
-         `${this.collection}/switch-status/${this.uid}`,
-         body
-      );
-
-      this.up_item(data, this.uid, status);
-      this.modal.proses_form = false;
+   async getFileInfo(uid): Promise<ApiResponse> {
+      return await get(`${this.urlStorage}/${uid}/info`);
    }
 }
 export class MainData extends Controller {
