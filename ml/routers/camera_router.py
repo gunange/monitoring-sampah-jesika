@@ -1,14 +1,14 @@
 # function stream() and last_frame()
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from ml.app.services import camera_service
+from ml.services.main_service import camera_controller
 
 camera_router = APIRouter()
 
 @camera_router.get("/camera")
 def camera_status():
     
-    return camera_service.get_status()
+    return camera_controller.get_status()
 
 @camera_router.get("/camera/list")
 def camera_list():
@@ -37,14 +37,14 @@ def camera_list():
 @camera_router.get("/camera/start")
 def camera_start():
 
-    ok =  camera_service.start()
-    return {"started": ok, "status": camera_service.get_status()}
+    ok =  camera_controller.start()
+    return {"started": ok, "status": camera_controller.get_status()}
 
 @camera_router.get("/camera/stop")
 def camera_stop():
     
-    camera_service.stop()
-    return {"stopped": True, "status": camera_service.get_status()}
+    camera_controller.stop()
+    return {"stopped": True, "status": camera_controller.get_status()}
 
 @camera_router.get("/camera/stream")
 def stream():
@@ -53,9 +53,9 @@ def stream():
     from ml.app.config import get_int
     import cv2, time
 
-    cap = camera_service.get_cap()
+    cap = camera_controller.get_cap()
     if cap is None:
-        status = camera_service.get_status()
+        status = camera_controller.get_status()
         raise HTTPException(status_code=404, detail=f"Camera belum siap: {status.get('last_error')}")
 
     fps = max(1, get_int("STREAM_FPS", 10))
@@ -63,7 +63,7 @@ def stream():
     def gen():
         try:
             while True:
-                ok, frame = camera_service.read_frame()
+                ok, frame = camera_controller.read_frame()
                 if not ok or frame is None:
                     break
                 ok2, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
@@ -76,7 +76,7 @@ def stream():
                        b + b"\r\n")
                 time.sleep(1.0 / float(fps))
         finally:
-            # Lifecycle kamera dikelola oleh camera_service
+            # Lifecycle kamera dikelola oleh camera_controller
             pass
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -94,12 +94,12 @@ def last_frame():
     from fastapi import HTTPException, Response
     import cv2
 
-    cap = camera_service.get_cap()
+    cap = camera_controller.get_cap()
     if cap is None:
-        status = camera_service.get_status()
+        status = camera_controller.get_status()
         raise HTTPException(status_code=404, detail=f"Camera belum siap: {status.get('last_error')}")
 
-    ok, frame = camera_service.read_frame()
+    ok, frame = camera_controller.read_frame()
     if not ok or frame is None:
         raise HTTPException(status_code=409, detail="Gagal membaca frame terbaru.")
 

@@ -261,8 +261,8 @@ class FrameController:
         label: str = "UNKNOW",
         return_image: bool = False,
     ) -> Dict[str, Any]:
-        # Lazy import camera_service & logger agar aman dari circular import
-        from ml.app.services import camera_service, logger
+        # Lazy import camera_controller & logger agar aman dari circular import
+        from ml.app.services import camera_controller, logger
         from ml.app.config import get_int, get_bool
 
         # Ambil konfigurasi dari .env (bukan dari argumen)
@@ -271,10 +271,10 @@ class FrameController:
         apply_clahe_v = bool(get_bool("APPLY_CLAHE_V", False))
         canny_auto = bool(get_bool("CANNY_AUTO", True))
 
-        cap = camera_service.get_cap()
+        cap = camera_controller.get_cap()
         if cap is None:
-            camera_service.start()
-            cap = camera_service.get_cap()
+            camera_controller.start()
+            cap = camera_controller.get_cap()
         if cap is None:
             reason = "Kamera gagal start. Periksa izin/availability."
             logger.error(reason)
@@ -282,12 +282,12 @@ class FrameController:
 
         # Warm-up: buang beberapa frame awal
         for _ in range(warmup_frames):
-            ok, _ = camera_service.read_frame()
+            ok, _ = camera_controller.read_frame()
             if not ok:
                 continue
 
         # Ambil 1 frame terbaru
-        ok, frame = camera_service.read_frame()
+        ok, frame = camera_controller.read_frame()
         if not ok or frame is None:
             reason = "Gagal membaca frame dari kamera."
             logger.error(reason)
