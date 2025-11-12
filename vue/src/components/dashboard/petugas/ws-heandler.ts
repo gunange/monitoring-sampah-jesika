@@ -27,7 +27,7 @@ class WSHandler {
         case "info":
           infoCtrl.handleWsData(payload);
           break;
-        case "alert":
+          case "alert":
           alertCtrl.handleWsData(payload);
           break;
         default:

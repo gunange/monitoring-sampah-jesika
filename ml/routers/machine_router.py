@@ -77,6 +77,7 @@ async def start_machine_learning():
             logger.debug("⚠️ TERDETEKSI: Sampah Menumpuk berurutan 10 kali!, sudah dikirim ke API")
             alert_counter = 0
 
+        logger.debug(f"⚠️ ALERT COUNTER: {alert_counter}")
     knn_service.start(on_result=on_result)
     # knn_service.start()
 

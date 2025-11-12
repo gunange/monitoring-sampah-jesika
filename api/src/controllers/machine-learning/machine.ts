@@ -66,7 +66,7 @@ export class MachineCtrl {
             wsResponse.add({
                data: data,
                message: `Dari Machine Learning`,
-               path: "alert",
+               path: "info",
             })
          );
       }
