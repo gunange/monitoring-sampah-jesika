@@ -3,7 +3,7 @@
 		<div class="card p-3 text-center relative">
             <!-- Overlay info terbaru -->
             <div
-                v-if="latestInfo"
+                v-if="latestInfo && running"
                 class="absolute top-3 left-3 z-10 max-w-[75%] text-left p-2 bg-black/50 rounded-[5px] shadow-lg"
             >
                 <div class="text-left text-xs text-white">
@@ -45,13 +45,15 @@
 <script>
 	import { api } from "@/config/apiConfig.js";
     import { infoCtrl } from "@/components/dashboard/petugas/controllers/info";
-	// import BradcumpWidget jika dipakai
+	import { MainData } from "@/components/dashboard/petugas/cruds/ml-config/controller.ts";
+	
+
+	const main = new MainData();
 
 	export default {
 		name: "MainView",
 		data() {
 			return {
-				running: false,
 				imgVersion: "0",
 			};
 		},
@@ -73,30 +75,21 @@
                 // Normalisasi: mendukung bentuk { data: {...} } atau langsung {...}
                 return item.data ?? item;
             },
+
+			running() {
+				return main.machineRunning;
+			},
+			
         },
 		methods: {
 			refreshStream() {
 				this.imgVersion = Date.now();
 			},
-			async init() {
-				const res = await fetch(this.pathMl, { cache: "no-store" });
-				const json = await res.json();
-				const wasRunning = this.running;
-				this.running = !!json.running;
-				if (this.running && !wasRunning) {
-					this.refreshStream();
-				}
-			},
-            getSeverity(status) {
-                const s = (status ?? "").toString().toLowerCase();
-                if (s.includes("aman")) return "success";
-                if (s.includes("tidak bersih")) return "warn";
-                if (s.includes("menumpuk")) return "error";
-                return "info";
-            },
+			
+           
 		},
 		async mounted() {
-			await this.init();
+			this.refreshStream();
 		},
 	};
 </script>

@@ -9,7 +9,9 @@ export const userStorage = defineStore(storeId, {
       dataset: StoreDataFormApi;
       info_knn: StoreDataFormApi;
       alert_knn: StoreDataFormApi;
+      ml_config: StoreDataFormApi;
    } => ({
+      ml_config: { ...atribut.storeDefault },
       alert_knn: { ...atribut.storeDefault },
       info_knn: { ...atribut.storeDefault },
       dataset: { ...atribut.storeDefault },

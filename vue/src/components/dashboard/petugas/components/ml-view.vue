@@ -9,12 +9,12 @@
 					'text-pink-500': !machineRunning,
 					'text-green-500': machineRunning,
 				}"
-				>{{ machineRunning ? "RUNNING" : "STOPPED" }}</span
+				>{{ run ? (machineRunning ? "RUNNING" : "STOPPED") : "UNAVAILABLE" }}</span
 			>
 		</p>
 
 		<!-- Tombol Play/Pause posisi absolut pojok kanan bawah -->
-		<div class="absolute bottom-4 right-4">
+		<div class="absolute bottom-4 right-4" v-if="run">
 			<Button
 				@click="toggleMachine"
 				size="small"
@@ -27,48 +27,33 @@
 </template>
 
 <script>
-	import { api } from "@/config/apiConfig.js";
+	import {MainData} from "@/components/dashboard/petugas/cruds/ml-config/controller.ts";
+
+	const main = new MainData()
 
 	export default {
 		name: "MlComp",
 		data() {
 			return {
-				machineRunning: false,
 			};
 		},
 		computed: {
-			pathMl() {
-				return `${api.url_api}machine-learning`;
+			machineRunning() {
+				return main.machineRunning ?? false
 			},
-			pathMlStart() {
-				return `${api.url_api}machine-learning/start`;
-			},
-			pathMlStop() {
-				return `${api.url_api}machine-learning/stop`;
-			},
+			run(){
+				return main.data.run;
+			}
 		},
-
 		methods: {
-			async getStatus() {
-				const res = await fetch(this.pathMl);
-				const data = await res.json();
-				this.machineRunning = data.running;
-			},
 			async toggleMachine() {
 				try {
-					const url = this.machineRunning ? this.pathMlStop : this.pathMlStart;
-					const res = await fetch(url);
-					const data = await res.json();
-					this.machineRunning = data.running;
+					await main.toggleMachine();
 				} catch (e) {
-					// Jika gagal, jangan ubah status; bisa tambahkan toast bila diperlukan
-					console.error("Toggle machine failed:", e);
 				}
 			},
 		},
 
-		mounted() {
-			this.getStatus();
-		},
+		
 	};
 </script>

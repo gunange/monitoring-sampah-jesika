@@ -75,3 +75,24 @@ def open_capture(src, backend_name: str | None, camera_status: dict):
         )
         return None
     return cap
+def get_camera_list():
+    from ml.app.config import get_int, get_str
+
+    backend = get_str("CAMERA_BACKEND", "AVFOUNDATION")
+    max_scan = max(1, get_int("CAMERA_SCAN_MAX", 5))  # default scan 5 indeks
+    cameras = []
+    for idx in range(max_scan):
+        status = {}
+        cap = open_capture(idx, backend, status)
+        if cap:
+            try:
+                cap.release()
+            except Exception:
+                pass
+        cameras.append({
+            "index": idx,
+            "available": bool(status.get("open")),
+            "backend": status.get("backend") or backend,
+            "last_error": status.get("last_error"),
+        })
+    return {"backend": backend, "count": len(cameras), "cameras": cameras}
