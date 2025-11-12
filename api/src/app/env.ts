@@ -17,6 +17,9 @@ export class Env {
    static get access_log() {
       return Bun.env["ACCESS_LOG"] === "true";
    }
+   static get error_log() {
+      return Bun.env["ERROR_LOG"] === "true";
+   }
    static get storage_path() {
       return Bun.env["STORAGE_PATH"] || "default/path";
    }

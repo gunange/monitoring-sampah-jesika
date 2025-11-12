@@ -3,6 +3,9 @@ import { Env } from "@/app/env";
 import { Storages } from "@/utils/storage";
 import { DatasetValidate } from "@/validators/DatasetValidate";
 import { UsersRepo } from "@/repositories";
+import { WsService } from "@/services/WsService";
+import { wsResponse } from "@/response/WsSocketResponse";
+import { AlertValidate } from "@/validators/AlertValidate";
 
 export class MachineCtrl {
    static async index(c: utils.Context): Promise<any> {
@@ -48,6 +51,30 @@ export class MachineCtrl {
                id: "desc",
             },
          }),
+      });
+   }
+
+   static async alert(c: utils.Context): Promise<any> {
+      const validate = await AlertValidate.send(c)
+
+      const data = {
+         label : validate.pred,
+         ...validate.result,
+      };
+
+      for (const client of WsService.getClientsByRole([2])) {
+         await client.send(
+            wsResponse.modified({
+               data: data,
+               message: `Ada status baru`,
+               path: "alert",
+            })
+         );
+      }
+
+      return c.json({
+         data: data,
+         message: "OK",
       });
    }
 }

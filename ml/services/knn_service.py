@@ -75,7 +75,7 @@ class KNNService:
         self.encoder = joblib.load(path_encoder)
 
     async def _loop(self):
-        from ml.services.main_service import frame_controller
+        from ml.services.main_service import frame_controller, knn_controller
 
         while self._running:
             try:
@@ -86,6 +86,8 @@ class KNNService:
                     features = result["features"]
                     pred = self.predict_from_feature_map(features)
                     self.last_pred = pred
+                    knn_controller.send_to_api(pred, result)
+
                     if self._on_result:
                         self._on_result(pred, result)
                 else:
@@ -106,7 +108,6 @@ class KNNService:
         self._on_result = on_result
         self._running = True
         self._task = asyncio.create_task(self._loop())
-        logger.debug("KNN task created: %s", self._task)
 
     async def stop(self):
         self._running = False
@@ -118,3 +119,5 @@ class KNNService:
                 pass
             self._task = None
             logger.info("KNN service stopped")
+
+

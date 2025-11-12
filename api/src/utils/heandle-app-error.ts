@@ -4,8 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 import { Env } from "@/app/env";
 import { Prisma } from "@prisma/client";
-
-const debug = Env.debug;
+import { DateTime } from "luxon";
 
 function zod(err: any) {
    if (!err.success) {
@@ -23,14 +22,39 @@ function jsonCatch(err: null | undefined | any = null) {
    });
 }
 
-function router(err: Error | HTTPResponseError, c: Context<BlankEnv, any, {}>) {
+async function writeErrorLog(c: Context, err: any) {
+    if (!Env.error_log) return;
+
+    const now = DateTime.now().setZone("Asia/Jayapura").setLocale("id");
+    const time = `[${now.toFormat("cccc, dd LLLL yyyy (HH:mm:ss)")}]`;
+    const method = c.req.method;
+    const url = c.req.url;
+    const status = c.res.status ?? 500;
+    const message = err?.message ?? String(err);
+    const stack = Env.debug && err?.stack ? `\n${err.stack}` : "";
+
+    const line = `${time} ${method} ${url} - ${status} :: ${message}${stack}`;
+    const path = "logs/error.log";
+
+    const exists = await Bun.file(path).exists();
+    if (exists) {
+        const prev = await Bun.file(path).text();
+        await Bun.write(path, prev + line + "\n");
+    } else {
+        await Bun.write(path, line + "\n");
+    }
+}
+
+async function router(err: Error | HTTPResponseError, c: Context<BlankEnv, any, {}>) {
    if (err instanceof HTTPException) {
       c.status(err.status);
+      await writeErrorLog(c, err);
       return c.json({ errors: err.message });
    }
 
    if (err instanceof ZodError) {
       c.status(400);
+      await writeErrorLog(c, err);
       return c.json({
          errors: err.issues.map((e) => ({
             path: e.path.join("."),
@@ -42,6 +66,7 @@ function router(err: Error | HTTPResponseError, c: Context<BlankEnv, any, {}>) {
    if (err instanceof Prisma.PrismaClientKnownRequestError) {
       c.status(400);
       const message = err.meta?.["message"];
+      await writeErrorLog(c, err);
 
       if (err.code === "P2025") {
          c.status(404);
@@ -63,7 +88,7 @@ function router(err: Error | HTTPResponseError, c: Context<BlankEnv, any, {}>) {
       }
 
       return c.json({
-         errors: debug
+         errors: Env.debug
             ? message ?? "Data tidak ditemukan"
             : "Data tidak ditemukan",
          code: err.code,
@@ -71,6 +96,7 @@ function router(err: Error | HTTPResponseError, c: Context<BlankEnv, any, {}>) {
    }
 
    c.status(500);
+   await writeErrorLog(c, err);
    return c.json({
       errors: err.message || "Internal Server Error",
    });

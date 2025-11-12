@@ -43,11 +43,10 @@ async def start_machine_learning():
     knn_service.fit_from_records(dataset_controller.dataset)
     camera_controller.start()
 
-    def on_result(pred, result):
-        logger.info("Realtime KNN on_result: %s", pred)
-        logger.info("Realtime KNN on_result: %s", result)
+    # def on_result(pred, result):
+    # knn_service.start(on_result=on_result)
 
-    knn_service.start(on_result=on_result)
+    knn_service.start()
     machine_learning_controller.status = True
 
     return {"name": "Machine Learning", "running": True}
