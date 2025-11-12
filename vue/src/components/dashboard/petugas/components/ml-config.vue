@@ -42,16 +42,10 @@
 							:icon="item.running ? 'pi pi-stop' : 'pi pi-play'"
 							:label="item.running ? 'Stop' : 'Start'"
 							:severity="item.running ? 'danger' : 'primary'"
+							:loading="isLoading"
 							@click="toggleMachine"
 							class="transition-opacity duration-200"
 						/>
-						<Button
-								@click="loadMachine"
-								size="small"
-								:icon="isLoading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
-								:label="isLoading ? 'Loading…' : 'Load Machine Status'"
-								aria-label="Load Machine Status"
-							/>
 						
 					</div>
 				</div>

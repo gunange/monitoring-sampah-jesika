@@ -10,7 +10,7 @@ class DatasetController:
     def storeToDb(self, label: str) -> Dict[str, Any]:
         from fastapi import HTTPException
         import json
-        from ml.controllers.frame_controller import frame_controller
+        from ml.services.main_service import frame_controller
         from ml.lib.api_request_lib import post as api_post
 
         data = frame_controller.capture_features(label=label, return_image=True)

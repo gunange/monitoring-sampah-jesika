@@ -72,7 +72,6 @@
             latestData() {
                 const item = this.latestInfo;
                 if (!item) return null;
-                // Normalisasi: mendukung bentuk { data: {...} } atau langsung {...}
                 return item.data ?? item;
             },
 

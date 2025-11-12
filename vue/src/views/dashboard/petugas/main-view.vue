@@ -26,6 +26,9 @@
 	import MlConfigComp from "@/components/dashboard/petugas/components/ml-config.vue";
 	import MlInfoComp from "@/components/dashboard/petugas/components/ml-info-view.vue";
 
+	import { MainData } from "@/components/dashboard/petugas/cruds/ml-config/controller.ts";
+
+	const main = new MainData();
 	export default {
 		name: "MainView",
 		components: {
@@ -38,6 +41,9 @@
 			pathRoute() {
 				return dataEnv.path_route;
 			},
+		},
+		async mounted() {
+			await main.getStatus();
 		},
 	};
 </script>

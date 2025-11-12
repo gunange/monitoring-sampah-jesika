@@ -11,6 +11,7 @@ from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from ml.app.logging import logger
+from ml.services.main_service import machine_service
 
 app = FastAPI()
 # Global error handlers (bertindak seperti middleware untuk error)
@@ -63,6 +64,10 @@ async def handle_unexpected_error(request: Request, exc: Exception):
         "method": request.method,
     }
     return JSONResponse(status_code=500, content=payload)
+
+@app.on_event("startup")
+def startup_event():
+    machine_service.startup()
 
 app.include_router(camera_router)
 app.include_router(list_router)
