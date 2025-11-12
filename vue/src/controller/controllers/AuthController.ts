@@ -1,12 +1,10 @@
 import { getActivePinia } from 'pinia'
 
 import { delay } from '../tools'
-import { del, get, RequestApiController } from '../others/RequestApiController'
+import { del, get } from '../others/RequestApiController'
 import { tokenName } from '@/config/appInfo.js'
 import { authStore } from '@/stores/users/auth'
 import axios from 'axios'
-
-const apiC = new RequestApiController()
 
 export class AuthController {
   private get isInitStore() {

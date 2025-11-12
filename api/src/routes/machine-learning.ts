@@ -14,4 +14,5 @@ machineLearning.get("/start", MachineLearningRoute.MachineCtrl.start);
 machineLearning.get("/stop", MachineLearningRoute.MachineCtrl.stop);
 machineLearning.post("/dataset", MachineLearningRoute.MachineCtrl.storeToMl);
 machineLearning.get("/dataset", MachineLearningRoute.MachineCtrl.dataset);
-machineLearning.post("/alert", MachineLearningRoute.MachineCtrl.alert);
+machineLearning.post("/info", MachineLearningRoute.MachineCtrl.mlInfo);
+machineLearning.post("/alert", MachineLearningRoute.MachineCtrl.mlAlert);

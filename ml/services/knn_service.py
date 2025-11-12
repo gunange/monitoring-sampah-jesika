@@ -86,8 +86,7 @@ class KNNService:
                     features = result["features"]
                     pred = self.predict_from_feature_map(features)
                     self.last_pred = pred
-                    knn_controller.send_to_api(pred, result)
-
+                    knn_controller.send_info_to_api(pred, result)
                     if self._on_result:
                         self._on_result(pred, result)
                 else:

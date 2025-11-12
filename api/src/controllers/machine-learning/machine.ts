@@ -2,7 +2,6 @@ import * as utils from "@/utils";
 import { Env } from "@/app/env";
 import { Storages } from "@/utils/storage";
 import { DatasetValidate } from "@/validators/DatasetValidate";
-import { UsersRepo } from "@/repositories";
 import { WsService } from "@/services/WsService";
 import { wsResponse } from "@/response/WsSocketResponse";
 import { AlertValidate } from "@/validators/AlertValidate";
@@ -54,7 +53,7 @@ export class MachineCtrl {
       });
    }
 
-   static async alert(c: utils.Context): Promise<any> {
+   static async mlInfo(c: utils.Context): Promise<any> {
       const validate = await AlertValidate.send(c)
 
       const data = {
@@ -64,14 +63,35 @@ export class MachineCtrl {
 
       for (const client of WsService.getClientsByRole([2])) {
          await client.send(
-            wsResponse.modified({
+            wsResponse.add({
                data: data,
-               message: `Ada status baru`,
+               message: `Dari Machine Learning`,
                path: "alert",
             })
          );
       }
+      return c.json({
+         data: data,
+         message: "OK",
+      });
+   }
+   static async mlAlert(c: utils.Context): Promise<any> {
+      const validate = await AlertValidate.send(c)
 
+      const data = {
+         label : validate.pred,
+         ...validate.result,
+      };
+
+      for (const client of WsService.getClientsByRole([2])) {
+         await client.send(
+            wsResponse.add({
+               data: data,
+               message: `Dari Machine Learning`,
+               path: "alert",
+            })
+         );
+      }
       return c.json({
          data: data,
          message: "OK",

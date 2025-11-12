@@ -23,6 +23,7 @@
 	import { AuthController } from "@/controller/controllers/AuthController.ts";
 	import { Controller as UserStorageController } from "@/components/dashboard/petugas/controller.ts";
 	import { RequestApiController } from "@/controller/others/RequestApiController";
+	import { wsHeandler } from "@/components/dashboard/petugas/ws-heandler";
 
 	const auth = new AuthController();
 	const apiC = new RequestApiController();
@@ -39,6 +40,7 @@
 
 			if (auth.store.isAuth && auth.store.user.User.role === "p3tug45") {
 				auth.setToken();
+				wsHeandler.init(auth.token);
 				next();
 				return;
 			}
@@ -50,6 +52,7 @@
 		async beforeRouteLeave(to, from, next) {
 			await auth.reset();
 			await new UserStorageController().dispose();
+			wsHeandler.close();
 			next();
 		},
 	};
