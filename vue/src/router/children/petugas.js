@@ -22,6 +22,11 @@ const routes = [
       component: () => import("@/views/dashboard/petugas/save-logs.vue"),
    },
    {
+      path: "traffic",
+      name: `${path_route}-traffic`,
+      component: () => import("@/views/dashboard/petugas/traffic.vue"),
+   },
+   {
       path: "monitoring",
       name: `${path_route}-monitoring`,
       component: () => import("@/views/dashboard/petugas/monitorin.vue"),

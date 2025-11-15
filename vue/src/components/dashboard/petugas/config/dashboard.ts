@@ -20,7 +20,11 @@ const menu = [
     icon: "pi pi-folder-open",
     route: `/${path_route}/save-logs`,
   },
-
+  {
+    label: "Traffic",
+    icon: "pi pi-upload",
+    route: `/${path_route}/traffic`,
+  },
   {
     label: "Monitoring",
     icon: "pi pi-camera",
