@@ -27,11 +27,17 @@ class AlertController {
       if (wsData.type == "add") {
          this.storage.data.push(wsData.data);
          const data = wsData.data;
+         try {
+            const audio = new Audio(
+               "/sound/alarm-siren-laboratory-accident-bop-audio-1-00-06.mp3"
+            );
+            await audio.play();
+         } catch (e) {}
          await this.toast.add({
             severity: "error",
             summary: data.label,
             detail: `Segera Periksa Di menu Monitor`,
-            life: 3000,
+            life: 5000,
          });
       }
    }
