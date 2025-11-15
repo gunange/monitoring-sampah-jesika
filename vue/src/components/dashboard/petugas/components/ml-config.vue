@@ -86,15 +86,33 @@
 									<span>{{ item.detail?.knn ? "ON" : "OFF" }}</span>
 								</span>
 							</div>
-							<div class="mt-3 flex items-center justify-between">
-								<div class="flex items-center gap-2">
-									<i class="pi pi-database text-slate-500"></i>
-									<span>Dataset</span>
-								</div>
-								<span class="text-slate-700 dark:text-slate-300">{{
-									item.detail?.dataset
-								}}</span>
+						<div class="mt-3 flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<i class="pi pi-database text-slate-500"></i>
+								<span>Dataset</span>
 							</div>
+							<span class="text-slate-700 dark:text-slate-300">{{
+								item.detail?.dataset
+							}}</span>
+						</div>
+						<div class="mt-3 flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<i class="pi pi-cog text-slate-500"></i>
+								<span>KNN K-Value</span>
+							</div>
+							<span class="text-slate-700 dark:text-slate-300">{{
+								item.detail?.['knn-k-value']
+							}}</span>
+						</div>
+						<div class="mt-3 flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<i class="pi pi-clock text-slate-500"></i>
+								<span>Interval Mesin</span>
+							</div>
+							<span class="text-slate-700 dark:text-slate-300">{{
+								item.detail?.['machine-interval']
+							}} s</span>
+						</div>
 						</div>
 
 						<div

@@ -6,6 +6,8 @@ class MachineService:
         self.knn = None
         self.dataset = 0
         self.camera_list = []
+        self.knn_neighbors = None
+        self.machine_interval = None
 
         pass
 
@@ -25,6 +27,9 @@ class MachineService:
         self.camera_list = get_camera_list()
         self.knn = knn_service._running
         self.camera = camera_controller.get_cap() is not None
+        self.knn_neighbors = knn_service.k
+        self.machine_interval = knn_service._interval
+
 
     @property
     def status(self):
@@ -36,6 +41,8 @@ class MachineService:
             "detail": {
                 "camera": self.camera,
                 "knn": self.knn,
+                "knn-k-value": self.knn_neighbors,
+                "machine-interval": self.machine_interval,
                 "dataset": self.dataset,
                 "camera-list": self.camera_list,
             },
