@@ -18,7 +18,7 @@
                 chartOptions: {
                     chart: {
                         id: "traffic-realtime",
-                        height: 350,
+                        height: 400,
                         type: "line",
                         animations: {
                             enabled: true,
@@ -51,14 +51,12 @@
         mounted() {
             this.chart = new ApexCharts(this.$refs.chart, this.chartOptions);
             this.chart.render();
-            const initial = this.buildSeries(this.item);
-            this.chart.updateSeries([{ name: "Trash Index", data: initial }]);
+            this.updateChart(this.item);
         },
         watch: {
             item(newItems) {
                 if (!this.chart) return;
-                const data = this.buildSeries(newItems);
-                this.chart.updateSeries([{ name: "Trash Index", data }]);
+                this.updateChart(newItems);
             },
         },
         methods: {
@@ -74,6 +72,28 @@
                         return { x, y };
                     });
                 return points;
+            },
+            computeBounds(points) {
+                if (!points || points.length === 0) return { min: 0, max: 100 };
+                const ys = points.map(p => p.y);
+                let min = Math.min(...ys);
+                let max = Math.max(...ys);
+                const range = max - min;
+                const pad = Math.max(2, Math.round(range * 0.2));
+                min = Math.max(0, min - pad);
+                max = Math.min(100, max + pad);
+                if (max - min < 10) {
+                    const center = (min + max) / 2;
+                    min = Math.max(0, Math.round(center - 8));
+                    max = Math.min(100, Math.round(center + 8));
+                }
+                return { min, max };
+            },
+            updateChart(items) {
+                const data = this.buildSeries(items);
+                const { min, max } = this.computeBounds(data);
+                this.chart.updateOptions({ yaxis: { min, max } });
+                this.chart.updateSeries([{ name: "Trash Index", data }]);
             },
         },
     };
