@@ -25,6 +25,7 @@ class AlertController {
    }
    async handleWsData(wsData: any) {
       if (wsData.type == "add") {
+         this.storage.data.push(wsData.data);
          const data = wsData.data;
          await this.toast.add({
             severity: "error",

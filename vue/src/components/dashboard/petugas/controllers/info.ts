@@ -23,6 +23,10 @@ class InfoController {
       if(wsData.type == "add"){
          this.storage.data.push(wsData.data);
       }
+      const len = this.storage.data.length;
+      if(len > 80){
+         this.storage.data = this.storage.data.slice(0, len - 30);
+      }
    }
 }
 export const infoCtrl = new InfoController();

@@ -113,11 +113,6 @@
 							</div>
 						</template>
 
-						<template #item-status="item">
-							<i class="pi pi-check text-green-500" v-if="item.enabled" />
-							<i class="pi pi-times text-red-500" v-else />
-						</template>
-
 						<template #loading>
 							<img src="/assets/gif/bola.gif" style="width: 100px; height: 80px" />
 						</template>

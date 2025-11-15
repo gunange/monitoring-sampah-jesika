@@ -86,9 +86,23 @@
 							</div>
 						</template>
 
-						<template #item-status="item">
-							<i class="pi pi-check text-green-500" v-if="item.enabled" />
-							<i class="pi pi-times text-red-500" v-else />
+						<template #expand="item">
+							<div class="p-4 text-sm bg-gray-50 border border-gray-200 rounded-md">
+								<p class="mb-2 text-primary font-semibold">Detail Fitur:</p>
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div>
+										<p><span class="font-medium">Laplacian Var:</span> {{ item.laplacian_var }}</p>
+										<p><span class="font-medium">Edge Ratio:</span> {{ item.edge_ratio }}</p>
+										<p><span class="font-medium">Shape Area Ratio:</span> {{ item.shape_area_ratio }}</p>
+									</div>
+									<div>
+										<p class="font-medium mb-1">Frame (JSON):</p>
+										<pre class="p-2 bg-white border rounded text-xs overflow-auto max-h-40">{{ formatJSON(item.frame) }}</pre>
+										<p class="font-medium mt-3 mb-1">ROI (JSON):</p>
+										<pre class="p-2 bg-white border rounded text-xs overflow-auto max-h-40">{{ formatJSON(item.roi) }}</pre>
+									</div>
+								</div>
+							</div>
 						</template>
 
 						<template #loading>
@@ -125,11 +139,12 @@
 					search: ref(""),
 					th: [
 						{ text: "Label", value: "label" },
-						{ text: "Priode", value: "priode" },
-						{ text: "Tahun", value: "tahun" },
-						{ text: "Status", value: "status" },
-						{ text: "Created", value: "created_at" },
-						{ text: "Updated", value: "updated_at" },
+						{ text: "h_mean", value: "h_mean" },
+						{ text: "h_std", value: "h_std" },
+						{ text: "s_mean", value: "s_mean" },
+						{ text: "s_std", value: "s_std" },
+						{ text: "v_mean", value: "v_mean" },
+						{ text: "v_std", value: "v_std" },
 						{ text: "Operation", value: "operation" },
 					],
 					isUpdate: false,
@@ -156,6 +171,15 @@
 		methods: {
 			reset() {
 				return main.reset();
+			},
+			formatJSON(value) {
+				try {
+					return typeof value === "string"
+						? JSON.stringify(JSON.parse(value), null, 2)
+						: JSON.stringify(value, null, 2);
+				} catch (e) {
+					return value ?? "-";
+				}
 			},
 		},
 		async mounted() {
