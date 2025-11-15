@@ -11,18 +11,18 @@ const menu = [
   },
   {
     label: "Dataset",
-    icon: "pi pi-chart-line",
+    icon: "pi pi-database",
     route: `/${path_route}/dataset`,
   },
   
   {
     label: "Save Logs",
-    icon: "pi pi-folder-open",
+    icon: "pi pi-save",
     route: `/${path_route}/save-logs`,
   },
   {
     label: "Traffic",
-    icon: "pi pi-upload",
+    icon: "pi pi-chart-line",
     route: `/${path_route}/traffic`,
   },
   {

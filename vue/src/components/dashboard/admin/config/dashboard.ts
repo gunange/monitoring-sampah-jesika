@@ -5,14 +5,9 @@ const route = routerStore();
 
 const menu = [
    {
-      label: "Camat",
+      label: "Pertugas",
       icon: "pi pi-home",
-      route: `/${path_route}/camat`,
-   },
-   {
-      label: "Staf",
-      icon: "pi pi-users",
-      route: `/${path_route}/staf`,
+      route: `/${path_route}/petugas`,
    },
   
 ];
