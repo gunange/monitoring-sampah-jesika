@@ -44,8 +44,8 @@
         computed: {
             item() {
                 const items = infoCtrl.items ?? [];
-                const pruned = items.length > 20 ? items.slice(-20) : items;
-                return [...pruned].reverse().slice(0, 10);
+                const pruned = items.length > 30 ? items.slice(-30) : items;
+                return [...pruned].reverse().slice(0, 18);
             },
         },
         mounted() {
@@ -62,15 +62,13 @@
         methods: {
             buildSeries(items) {
                 const now = Date.now();
-                const gate = 5;
-                const points = items
-                    .filter(it => (it?.features?.laplacian_var ?? gate) >= gate)
-                    .map((it, idx, arr) => {
-                        const ratio = Math.max(0, Math.min(1, it?.features?.shape_area_ratio ?? 0));
-                        const y = Math.round(ratio * 100);
-                        const x = now - (arr.length - idx) * 1000;
-                        return { x, y };
-                    });
+                const points = items.map((it, idx, arr) => {
+                    const raw = (it?.features?.shape_area_ratio ?? it?.features?.edge_ratio ?? 0);
+                    const ratio = Math.max(0, Math.min(1, raw));
+                    const y = Math.round(ratio * 100);
+                    const x = now - (arr.length - idx) * 1000;
+                    return { x, y };
+                });
                 return points;
             },
             computeBounds(points) {
