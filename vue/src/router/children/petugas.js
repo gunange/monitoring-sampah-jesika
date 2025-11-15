@@ -17,6 +17,11 @@ const routes = [
       component: () => import("@/views/dashboard/petugas/dataset.vue"),
    },
    {
+      path: "save-logs",
+      name: `${path_route}-save-logs`,
+      component: () => import("@/views/dashboard/petugas/save-logs.vue"),
+   },
+   {
       path: "monitoring",
       name: `${path_route}-monitoring`,
       component: () => import("@/views/dashboard/petugas/monitorin.vue"),

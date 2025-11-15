@@ -31,3 +31,8 @@ petugas.get("", (c) =>
 petugas.get("/dataset", PetugasRoute.DatasetCtrl.index);
 petugas.post("/dataset", PetugasRoute.DatasetCtrl.store);
 petugas.delete("/dataset/:id", PetugasRoute.DatasetCtrl.destroy);
+
+/* ---- save-logs ---- */
+petugas.get("/save-logs", PetugasRoute.SaveLogsCtrl.index);
+petugas.post("/save-logs", PetugasRoute.SaveLogsCtrl.store);
+petugas.delete("/save-logs/:id", PetugasRoute.SaveLogsCtrl.destroy);

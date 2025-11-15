@@ -11,9 +11,9 @@ export const userStorage = defineStore(storeId, {
     priode: StoreDataFormApi
     websocket: WebSocket | null
   } => ({
-    atribut: { ...atribut.storeDefault },
-    feeder: { ...atribut.storeDefault },
-    priode: { ...atribut.storeDefault },
+    atribut: atribut.createStoreDefault(),
+    feeder: atribut.createStoreDefault(),
+    priode: atribut.createStoreDefault(),
     websocket: null,
   }),
 })

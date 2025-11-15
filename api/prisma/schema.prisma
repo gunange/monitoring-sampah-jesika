@@ -96,3 +96,23 @@ model Dataset {
 
   @@map("__dataset")
 }
+
+model SaveLogs {
+  id               Int      @id @default(autoincrement())
+  label            String   @db.VarChar(150)
+  h_mean           Float
+  h_std            Float
+  s_mean           Float
+  s_std            Float
+  v_mean           Float
+  v_std            Float
+  laplacian_var    Float
+  edge_ratio       Float
+  shape_area_ratio Float
+  frame            Json
+  roi              Json
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("__save_logs")
+}

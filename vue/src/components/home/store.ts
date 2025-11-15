@@ -11,8 +11,8 @@ export const userStorage = defineStore(storeId, {
     guru: StoreDataFormApi
     penilaian: StoreDataFormApi
   } => ({
-    penilaian: { ...atribut.storeDefault },
-    guru: { ...atribut.storeDefault },
+    penilaian: atribut.createStoreDefault(),
+    guru: atribut.createStoreDefault(),
     isAuth: false,
     user: false,
   }),

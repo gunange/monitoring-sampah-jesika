@@ -14,6 +14,13 @@ const menu = [
     icon: "pi pi-chart-line",
     route: `/${path_route}/dataset`,
   },
+  
+  {
+    label: "Save Logs",
+    icon: "pi pi-folder-open",
+    route: `/${path_route}/save-logs`,
+  },
+
   {
     label: "Monitoring",
     icon: "pi pi-camera",

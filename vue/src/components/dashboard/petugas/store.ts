@@ -10,10 +10,12 @@ export const userStorage = defineStore(storeId, {
       info_knn: StoreDataFormApi;
       alert_knn: StoreDataFormApi;
       ml_config: StoreDataFormApi;
+      save_logs: StoreDataFormApi;
    } => ({
-      ml_config: { ...atribut.storeDefault },
-      alert_knn: { ...atribut.storeDefault },
-      info_knn: { ...atribut.storeDefault },
-      dataset: { ...atribut.storeDefault },
+      save_logs: atribut.createStoreDefault(),
+      ml_config: atribut.createStoreDefault(),
+      alert_knn: atribut.createStoreDefault(),
+      info_knn: atribut.createStoreDefault(),
+      dataset: atribut.createStoreDefault(),
    }),
 });

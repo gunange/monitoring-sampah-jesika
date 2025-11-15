@@ -9,7 +9,7 @@ export const userStorage = defineStore(storeId, {
       websocket: WebSocket | null;
       petugas: StoreDataFormApi;
    } => ({
-      petugas: { ...atribut.storeDefault },
+      petugas: atribut.createStoreDefault(),
       websocket: null,
    }),
 });

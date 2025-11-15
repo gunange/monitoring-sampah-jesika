@@ -15,7 +15,6 @@ export class Controller {
 
   async dispose() {
     if (this.isInitStore) {
-      if (this.store.websocket) this.store.websocket.close()
       await this.store.$reset()
       await this.store.$dispose()
     }

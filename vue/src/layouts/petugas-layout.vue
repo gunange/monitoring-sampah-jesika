@@ -52,7 +52,7 @@
 		async beforeRouteLeave(to, from, next) {
 			await auth.reset();
 			await new UserStorageController().dispose();
-			wsHeandler.close();
+			await wsHeandler.close();
 			next();
 		},
 	};

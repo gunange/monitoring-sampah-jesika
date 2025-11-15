@@ -1,9 +1,9 @@
 import { StoreDataFormApi } from '../interface'
 
-export const storeDefault: StoreDataFormApi = {
+export const createStoreDefault = (): StoreDataFormApi => ({
   load: false,
   run: false,
   data: [],
   dataOnly: {},
   filter: null,
-}
+})

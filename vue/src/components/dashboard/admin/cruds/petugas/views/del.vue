@@ -35,6 +35,7 @@
 
 <template>
 	<main>
+		<!-- eslint-disable vue/no-v-model-argument -->
 		<Dialog
 			v-model:visible="modal.show"
 			:breakpoints="breakpoints.dialog"

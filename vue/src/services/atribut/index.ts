@@ -1,4 +1,4 @@
-import { storeDefault } from "./store-default";
+import { createStoreDefault } from "./store-default";
 
 import { allow_types } from "./allow-type";
 import { jenisPengaduan } from "./jenis-pengaduan";
@@ -8,7 +8,7 @@ import { pengaduan } from "./pengaduan";
 
 export const atribut = {
    allow_types,
-   storeDefault,
+   createStoreDefault,
    hari,
    ruang,
    jenisPengaduan,
