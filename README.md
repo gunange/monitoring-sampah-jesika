@@ -33,7 +33,7 @@ Berikut adalah teknologi utama yang digunakan dalam proyek ini:
 | ----------------- | ---------------------------------------------------------------------- |
 | **Frontend (vue)**| [Vue.js](https://vuejs.org/), [Vite](https://vitejs.dev/), [Pinia](https://pinia.vuejs.org/), [PrimeVue](https://www.primefaces.org/primevue/) |
 | **Backend (api)** | [Node.js](https://nodejs.org/), [Express.js](https://expressjs.com/), [TypeScript](https://www.typescriptlang.org/), [Prisma](https://www.prisma.io/), [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) |
-| **ML (ml)**       | [Python](https://www.python.org/), [FastAPI](https://fastapi.tiangolo.com/) (atau Flask), OpenCV, Scikit-learn |
+| **ML (ml)**       | [Python](https://www.python.org/), [FastAPI](https://fastapi.tiangolo.com/) OpenCV, Scikit-learn |
 
 ## ✨ Fitur Utama
 
