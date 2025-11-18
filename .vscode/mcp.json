@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "monitoring-sampah-jesika Docs": {
+      "type": "sse",
+      "url": "https://gitmcp.io/gunange/monitoring-sampah-jesika"
+    }
+  }
+}
