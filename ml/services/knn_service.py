@@ -84,6 +84,13 @@ class KNNService:
                 )
                 if result.get("ok"):
                     features = result["features"]
+                    
+                    if self.pipeline is None:
+                        # Model belum siap, skip prediksi tapi jangan crash
+                        # logger.debug("Model belum dilatih, menunggu dataset...")
+                        await asyncio.sleep(self._interval)
+                        continue
+
                     pred = self.predict_from_feature_map(features)
                     self.last_pred = pred
                     knn_controller.send_info_to_api(pred, result)
@@ -99,7 +106,8 @@ class KNNService:
         from ml.app.config import get_int
 
         if self.pipeline is None:
-            raise RuntimeError("Model belum dilatih. Panggil fit_from_records() dulu.")
+            logger.warning("Model belum dilatih. Service akan berjalan idle menunggu model.")
+            # raise RuntimeError("Model belum dilatih. Panggil fit_from_records() dulu.")
         if self._running:
             logger.info("KNN service already running; start ignored")
             return

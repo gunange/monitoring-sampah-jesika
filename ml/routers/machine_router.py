@@ -26,7 +26,11 @@ async def start_machine_learning():
     
     # Service Penting
     dataset_controller.initSetDataFromDb()
-    knn_service.fit_from_records(dataset_controller.dataset) 
+    try:
+        knn_service.fit_from_records(dataset_controller.dataset)
+    except Exception as e:
+        logger.warning(f"Gagal melatih model KNN (mungkin dataset kosong): {e}")
+
     camera_controller.start()
 
     def on_result(pred, result):
