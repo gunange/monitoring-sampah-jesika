@@ -7,6 +7,7 @@
                 class="absolute top-3 left-3 z-10 max-w-[75%] text-left p-2 bg-black/50 rounded-[5px] shadow-lg"
             >
                 <div class="text-left text-xs text-white">
+                    <p class="font-semibold text-green-500">Monitoring : Kalimati Kel. Toboko</p>
                     <p class="font-semibold">Status Monitoring: {{ latestData?.label }}</p>
                     <div class="mt-1 space-y-0.5">
                         <p>Resolusi Frame: {{ latestData?.frame?.width }} x {{ latestData?.frame?.height }}</p>
